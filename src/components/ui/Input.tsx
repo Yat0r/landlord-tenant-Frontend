@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+          <label htmlFor={inputId} className="text-sm font-medium text-gray-700 dark:text-slate-200">
             {label}
           </label>
         )}
@@ -23,16 +23,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           className={clsx(
             'w-full rounded-md border px-3 py-2 text-sm text-gray-900 shadow-sm',
-            'placeholder:text-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-            'disabled:bg-gray-50 disabled:cursor-not-allowed',
-            error ? 'border-red-400 focus:ring-red-500' : 'border-gray-300',
+            'placeholder:text-gray-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500',
+            'focus:outline-none focus:ring-2 focus:ring-[#006948] focus:border-[#006948]',
+            'disabled:bg-gray-50 disabled:cursor-not-allowed dark:disabled:bg-slate-950',
+            error ? 'border-red-400 focus:ring-red-500 dark:border-red-500' : 'border-gray-300',
             className
           )}
           {...props}
         />
-        {error && <p className="text-xs text-red-600">{error}</p>}
-        {hint && !error && <p className="text-xs text-gray-500">{hint}</p>}
+        {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+        {hint && !error && <p className="text-xs text-gray-500 dark:text-slate-400">{hint}</p>}
       </div>
     );
   }

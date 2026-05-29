@@ -37,7 +37,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       />
       <div
         className={clsx(
-          'relative w-full rounded-xl bg-white shadow-xl',
+          'relative w-full rounded-xl bg-white shadow-xl dark:bg-slate-900 dark:shadow-black/30',
           sizeClasses[size]
         )}
         role="dialog"
@@ -45,13 +45,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         aria-labelledby={title ? 'modal-title' : undefined}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 id="modal-title" className="text-lg font-semibold text-gray-900">
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-slate-800">
+            <h2 id="modal-title" className="text-lg font-semibold text-gray-900 dark:text-slate-100">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="rounded-md p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#006948] dark:hover:text-slate-200"
               aria-label="Close modal"
             >
               <X className="h-5 w-5" />

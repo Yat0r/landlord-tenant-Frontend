@@ -26,6 +26,8 @@ import AccountNotLinkedPage from '@/pages/errors/AccountNotLinkedPage';
 
 // Portal pages
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import AdminAddLandlordPage from '@/pages/admin/AdminAddLandlordPage';
+import AdminLandlordsPage from '@/pages/admin/AdminLandlordsPage';
 import PropertyManagerDashboardPage from '@/pages/propertymanager/PropertyManagerDashboardPage';
 import LandlordDashboardPage from '@/pages/landlord/LandlordDashboardPage';
 import TenantDashboardPage from '@/pages/tenant/TenantDashboardPage';
@@ -56,7 +58,8 @@ export function AppRouter() {
           <Route element={<RoleGuard roles={[ROLES.ADMIN]} />}>
             <Route element={<AdminLayout />}>
               <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
-              <Route path={ROUTES.ADMIN_LANDLORDS} element={<PlannedState feature="Landlords" />} />
+              <Route path={ROUTES.ADMIN_LANDLORDS} element={<AdminLandlordsPage />} />
+              <Route path={ROUTES.ADMIN_LANDLORDS_NEW} element={<AdminAddLandlordPage />} />
               <Route path={ROUTES.ADMIN_TENANTS} element={<PlannedState feature="Tenants" />} />
               <Route path={ROUTES.ADMIN_PROPERTIES} element={<PlannedState feature="Properties" />} />
               <Route path={ROUTES.ADMIN_LEASES} element={<PlannedState feature="Leases" />} />

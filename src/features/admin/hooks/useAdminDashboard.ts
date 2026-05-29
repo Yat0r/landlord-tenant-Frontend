@@ -1,197 +1,128 @@
 import { useQuery } from '@tanstack/react-query';
-import { httpClient } from '@/api/clients/httpClient';
-import { ENDPOINTS } from '@/api/modules/endpoints';
+import { AxiosError } from 'axios';
+import { isNonRetryableStatus } from '@/api/helpers/apiHelpers';
+import {
+  fetchAuditLogs,
+  fetchLandlords,
+  fetchLeases,
+  fetchMaintenanceRequests,
+  fetchPayments,
+  fetchProperties,
+  fetchTenants,
+} from '@/api/modules/adminApi';
+import { fetchHealth } from '@/api/modules/systemApi';
 import type {
-  PagedResult,
-  ApiProperty,
-  ApiPayment,
-  ApiLandlord,
-  ApiTenant,
-  ApiLease,
-  ApiMaintenanceRequest,
-  ApiAuditLog,
+  AuditLogEntity,
+  LeaseEntity,
+  LandlordEntity,
+  MaintenancePriority,
+  MaintenanceRequestEntity,
+  MaintenanceStatus,
+  PaymentEntity,
   PaymentStatus,
-} from '../types/dashboard';
+  PropertyEntity,
+  TenantEntity,
+  LeaseStatus,
+} from '@/types/domain/entities';
+import type { QueryKey } from '@tanstack/react-query';
 
-function get<T>(url: string): Promise<T> {
-  return httpClient.get<T>(url).then((response) => response.data);
+const queryOptions = {
+  staleTime: 60_000,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+  retry: (failureCount: number, error: unknown) => {
+    if (error instanceof AxiosError && error.response && isNonRetryableStatus(error.response.status)) {
+      return false;
+    }
+
+    return failureCount < 2;
+  },
+} as const;
+
+type CollectionParams = {
+  page?: number;
+  pageSize?: number;
+};
+
+function collectionKey(name: string, params: Record<string, unknown>): QueryKey {
+  return ['admin', name, params];
 }
 
-function qs(params: Record<string, string | number | undefined>): string {
-  const parts = Object.entries(params)
-    .filter(([, value]) => value !== undefined)
-    .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`);
-
-  return parts.length ? `?${parts.join('&')}` : '';
-}
-
-export function useDashboardKpi() {
+export function useHealth() {
   return useQuery({
-    queryKey: ['admin', 'dashboard', 'kpis'],
-    queryFn: () =>
-      Promise.all([
-        get<PagedResult<ApiProperty>>(
-          ENDPOINTS.ADMIN.PROPERTIES + qs({ page: 1, pageSize: 1 })
-        ).then((data) => data.totalCount),
-        get<PagedResult<ApiPayment>>(
-          ENDPOINTS.ADMIN.PAYMENTS + qs({ page: 1, pageSize: 1, status: 'pending' })
-        ).then((data) => data.totalCount),
-        get<PagedResult<ApiTenant>>(
-          ENDPOINTS.ADMIN.TENANTS + qs({ page: 1, pageSize: 1 })
-        ).then((data) => data.totalCount),
-        get<PagedResult<ApiLandlord>>(
-          ENDPOINTS.ADMIN.LANDLORDS + qs({ page: 1, pageSize: 1 })
-        ).then((data) => data.totalCount),
-        get<PagedResult<ApiLease>>(
-          ENDPOINTS.ADMIN.LEASES + qs({ page: 1, pageSize: 1, status: 'active' })
-        ).then((data) => data.totalCount),
-      ]).then(([propertyCount, pendingPayments, tenantCount, landlordCount, activeLeases]) => ({
-        propertyCount,
-        pendingPayments,
-        tenantCount,
-        landlordCount,
-        activeLeases,
-      })),
+    queryKey: ['system', 'health'],
+    queryFn: fetchHealth,
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: queryOptions.retry,
   });
 }
 
-export function useProperties() {
+export function useLandlords(params: CollectionParams & { keycloakLinked?: boolean } = {}) {
   return useQuery({
-    queryKey: ['admin', 'properties', 'recent'],
-    queryFn: () =>
-      get<PagedResult<ApiProperty>>(
-        ENDPOINTS.ADMIN.PROPERTIES + qs({ page: 1, pageSize: 3 })
-      ),
-    staleTime: 30_000,
+    queryKey: collectionKey('landlords', params),
+    queryFn: () => fetchLandlords(params),
+    ...queryOptions,
   });
 }
 
-export function usePropertyCount() {
+export function useTenants(params: CollectionParams & { keycloakLinked?: boolean } = {}) {
   return useQuery({
-    queryKey: ['admin', 'properties', 'count'],
-    queryFn: () =>
-      get<PagedResult<ApiProperty>>(
-        ENDPOINTS.ADMIN.PROPERTIES + qs({ page: 1, pageSize: 1 })
-      ),
-    staleTime: 60_000,
-    select: (data) => data.totalCount,
+    queryKey: collectionKey('tenants', params),
+    queryFn: () => fetchTenants(params),
+    ...queryOptions,
   });
 }
 
-export function usePayments(status?: PaymentStatus) {
+export function useProperties(params: CollectionParams = {}) {
   return useQuery({
-    queryKey: ['admin', 'payments', status ?? 'all'],
-    queryFn: () =>
-      get<PagedResult<ApiPayment>>(
-        ENDPOINTS.ADMIN.PAYMENTS + qs({ page: 1, pageSize: 6, status })
-      ),
-    staleTime: 30_000,
+    queryKey: collectionKey('properties', params),
+    queryFn: () => fetchProperties(params),
+    ...queryOptions,
   });
 }
 
-export function usePaymentSummary(status: PaymentStatus) {
+export function useLeases(params: CollectionParams & { status?: LeaseStatus } = {}) {
   return useQuery({
-    queryKey: ['admin', 'payments', 'summary', status],
-    queryFn: () =>
-      get<PagedResult<ApiPayment>>(
-        ENDPOINTS.ADMIN.PAYMENTS + qs({ page: 1, pageSize: 1, status })
-      ),
-    staleTime: 60_000,
-    select: (data) => ({ count: data.totalCount }),
+    queryKey: collectionKey('leases', params),
+    queryFn: () => fetchLeases(params),
+    ...queryOptions,
   });
 }
 
-export function useLandlordCount() {
+export function usePayments(params: CollectionParams & { status?: PaymentStatus } = {}) {
   return useQuery({
-    queryKey: ['admin', 'landlords', 'count'],
-    queryFn: () =>
-      get<PagedResult<ApiLandlord>>(
-        ENDPOINTS.ADMIN.LANDLORDS + qs({ page: 1, pageSize: 1 })
-      ),
-    staleTime: 60_000,
-    select: (data) => data.totalCount,
+    queryKey: collectionKey('payments', params),
+    queryFn: () => fetchPayments(params),
+    ...queryOptions,
   });
 }
 
-export function useUnlinkedLandlordCount() {
+export function useMaintenanceRequests(
+  params: CollectionParams & { status?: MaintenanceStatus; priority?: MaintenancePriority } = {}
+) {
   return useQuery({
-    queryKey: ['admin', 'landlords', 'unlinked'],
-    queryFn: () =>
-      get<PagedResult<ApiLandlord>>(
-        ENDPOINTS.ADMIN.LANDLORDS + qs({ page: 1, pageSize: 1, keycloakLinked: 'false' })
-      ),
-    staleTime: 60_000,
-    select: (data) => data.totalCount,
+    queryKey: collectionKey('maintenance-requests', params),
+    queryFn: () => fetchMaintenanceRequests(params),
+    ...queryOptions,
   });
 }
 
-export function useTenantCount() {
+export function useAuditLogs(params: CollectionParams = {}) {
   return useQuery({
-    queryKey: ['admin', 'tenants', 'count'],
-    queryFn: () =>
-      get<PagedResult<ApiTenant>>(
-        ENDPOINTS.ADMIN.TENANTS + qs({ page: 1, pageSize: 1 })
-      ),
-    staleTime: 60_000,
-    select: (data) => data.totalCount,
+    queryKey: collectionKey('audit-logs', params),
+    queryFn: () => fetchAuditLogs(params),
+    ...queryOptions,
   });
 }
 
-export function useUnlinkedTenantCount() {
-  return useQuery({
-    queryKey: ['admin', 'tenants', 'unlinked'],
-    queryFn: () =>
-      get<PagedResult<ApiTenant>>(
-        ENDPOINTS.ADMIN.TENANTS + qs({ page: 1, pageSize: 1, keycloakLinked: 'false' })
-      ),
-    staleTime: 60_000,
-    select: (data) => data.totalCount,
-  });
-}
-
-export function useActiveLeaseCount() {
-  return useQuery({
-    queryKey: ['admin', 'leases', 'active'],
-    queryFn: () =>
-      get<PagedResult<ApiLease>>(
-        ENDPOINTS.ADMIN.LEASES + qs({ page: 1, pageSize: 1, status: 'active' })
-      ),
-    staleTime: 60_000,
-    select: (data) => data.totalCount,
-  });
-}
-
-export function useMaintenanceRequests() {
-  return useQuery({
-    queryKey: ['admin', 'maintenance', 'recent'],
-    queryFn: () =>
-      get<PagedResult<ApiMaintenanceRequest>>(
-        ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS + qs({ page: 1, pageSize: 3 })
-      ),
-    staleTime: 30_000,
-  });
-}
-
-export function useOpenMaintenanceCount() {
-  return useQuery({
-    queryKey: ['admin', 'maintenance', 'open-count'],
-    queryFn: () =>
-      get<PagedResult<ApiMaintenanceRequest>>(
-        ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS + qs({ page: 1, pageSize: 1, status: 'open' })
-      ),
-    staleTime: 60_000,
-    select: (data) => data.totalCount,
-  });
-}
-
-export function useAuditLogs() {
-  return useQuery({
-    queryKey: ['admin', 'audit-logs', 'recent'],
-    queryFn: () =>
-      get<PagedResult<ApiAuditLog>>(
-        ENDPOINTS.ADMIN.AUDIT_LOGS + qs({ page: 1, pageSize: 5 })
-      ),
-    staleTime: 30_000,
-  });
-}
+export type {
+  AuditLogEntity,
+  LeaseEntity,
+  LandlordEntity,
+  MaintenanceRequestEntity,
+  PaymentEntity,
+  PropertyEntity,
+  TenantEntity,
+};

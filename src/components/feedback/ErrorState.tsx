@@ -13,7 +13,7 @@ export function ErrorState({
   return (
     <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 text-center">
       <AlertCircle className="h-10 w-10 text-red-400" />
-      <p className="max-w-xs text-sm text-gray-600">{message}</p>
+      <p className="max-w-xs text-sm text-gray-600 dark:text-slate-300">{message}</p>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
           Try again

@@ -14,6 +14,7 @@ export const ROUTES = {
   ADMIN: '/admin',
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_LANDLORDS: '/admin/landlords',
+  ADMIN_LANDLORDS_NEW: '/admin/landlords/new',
   ADMIN_TENANTS: '/admin/tenants',
   ADMIN_PROPERTIES: '/admin/properties',
   ADMIN_LEASES: '/admin/leases',

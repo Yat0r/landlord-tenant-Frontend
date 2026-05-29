@@ -1,13 +1,10 @@
 /**
  * API endpoint constants for LandlordTenant.
- * These are the ONLY correct routes — do not use /api/admin/tenants,
- * /api/admin/landlords, /api/maintenance, /api/landlord/profile, etc.
+ * These are the ONLY correct routes for the admin dashboard.
  */
 
 export const ENDPOINTS = {
-  // ─── Admin ────────────────────────────────────────────────────────────────
   ADMIN: {
-    DASHBOARD_SUMMARY: '/api/admin/dashboard-summary',    
     LANDLORDS: '/api/landlords',
     TENANTS: '/api/tenants',
     PROPERTIES: '/api/properties',
@@ -17,7 +14,10 @@ export const ENDPOINTS = {
     AUDIT_LOGS: '/api/audit-logs',
   },
 
-  // ─── Tenant (self-service) ─────────────────────────────────────────────────
+  SYSTEM: {
+    HEALTH: '/health',
+  },
+
   TENANT: {
     PROFILE: '/api/tenant/me/profile',
     LEASES: '/api/tenant/me/leases',
@@ -25,7 +25,6 @@ export const ENDPOINTS = {
     MAINTENANCE_REQUESTS: '/api/tenant/me/maintenance-requests',
   },
 
-  // ─── Landlord (self-service) ───────────────────────────────────────────────
   LANDLORD: {
     PROFILE: '/api/landlord/me/profile',
     PROPERTIES: '/api/landlord/me/properties',
@@ -37,12 +36,12 @@ export const ENDPOINTS = {
   },
 } as const;
 
-export const adminQuery ={
-  properties:  (qs?: string) => `${ENDPOINTS.ADMIN.PROPERTIES}${qs ? `?${qs}` : ""}`,
-  payments:    (qs?: string) => `${ENDPOINTS.ADMIN.PAYMENTS}${qs ? `?${qs}` : ""}`,
-  maintenance: (qs?: string) => `${ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS}${qs ? `?${qs}` : ""}`,
-  leases:      (qs?: string) => `${ENDPOINTS.ADMIN.LEASES}${qs ? `?${qs}` : ""}`,
-  landlords:   (qs?: string) => `${ENDPOINTS.ADMIN.LANDLORDS}${qs ? `?${qs}` : ""}`,
-  tenants:     (qs?: string) => `${ENDPOINTS.ADMIN.TENANTS}${qs ? `?${qs}` : ""}`,
-  auditLogs:   (qs?: string) => `${ENDPOINTS.ADMIN.AUDIT_LOGS}${qs ? `?${qs}` : ""}`,
+export const adminQuery = {
+  properties: (qs?: string) => `${ENDPOINTS.ADMIN.PROPERTIES}${qs ? `?${qs}` : ''}`,
+  payments: (qs?: string) => `${ENDPOINTS.ADMIN.PAYMENTS}${qs ? `?${qs}` : ''}`,
+  maintenance: (qs?: string) => `${ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS}${qs ? `?${qs}` : ''}`,
+  leases: (qs?: string) => `${ENDPOINTS.ADMIN.LEASES}${qs ? `?${qs}` : ''}`,
+  landlords: (qs?: string) => `${ENDPOINTS.ADMIN.LANDLORDS}${qs ? `?${qs}` : ''}`,
+  tenants: (qs?: string) => `${ENDPOINTS.ADMIN.TENANTS}${qs ? `?${qs}` : ''}`,
+  auditLogs: (qs?: string) => `${ENDPOINTS.ADMIN.AUDIT_LOGS}${qs ? `?${qs}` : ''}`,
 };
