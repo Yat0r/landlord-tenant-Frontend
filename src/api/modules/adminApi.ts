@@ -16,6 +16,15 @@ import type {
   LeaseStatus,
 } from '@/types/domain/entities';
 
+export interface CreatePropertyPayload {
+  name: string;
+  address: string;
+  totalUnits: number;
+  monthlyRent: number;
+  landlordId?: string;
+  photoUrl?: string;
+}
+
 type QueryValue = string | number | boolean | undefined;
 
 function qs(params: Record<string, QueryValue>): string {
@@ -61,6 +70,10 @@ export function fetchTenants(params: {
 export function fetchProperties(params: { page?: number; pageSize?: number } = {}) {
   const { page = 1, pageSize = 100 } = params;
   return getPaged<PropertyEntity>(`${ENDPOINTS.ADMIN.PROPERTIES}${qs({ page, pageSize })}`);
+}
+
+export function createProperty(payload: CreatePropertyPayload) {
+  return httpClient.post<PropertyEntity>(ENDPOINTS.ADMIN.PROPERTIES, payload).then((response) => response.data);
 }
 
 export function fetchLeases(params: {
