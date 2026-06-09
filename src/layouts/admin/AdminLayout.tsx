@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { DashboardLayout } from '@/layouts/dashboard/DashboardLayout';
 import { ROUTES } from '@/constants/routes/routes';
 import { useAuth } from '@/auth/hooks/useAuth';
@@ -6,20 +6,34 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Building2, FileText,
   CreditCard, Wrench, ScrollText, LogOut, Search, Bell, Settings, Moon, Sun,
+  ChevronDown, KeyRound, UserCircle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
   { label: 'Dashboard', to: ROUTES.ADMIN_DASHBOARD, icon: LayoutDashboard },
   { label: 'Landlords', to: ROUTES.ADMIN_LANDLORDS, icon: Users },
-  { label: 'Tenants', to: ROUTES.ADMIN_TENANTS, icon: Users },
   { label: 'Properties', to: ROUTES.ADMIN_PROPERTIES, icon: Building2 },
+  { label: 'Tenants', to: ROUTES.ADMIN_TENANTS, icon: Users },
   { label: 'Leases', to: ROUTES.ADMIN_LEASES, icon: FileText },
   { label: 'Payments', to: ROUTES.ADMIN_PAYMENTS, icon: CreditCard },
   { label: 'Maintenance', to: ROUTES.ADMIN_MAINTENANCE, icon: Wrench },
   { label: 'Audit Logs', to: ROUTES.ADMIN_AUDIT_LOGS, icon: ScrollText },
   { label: 'Settings', to: ROUTES.ADMIN_SETTINGS, icon: Settings },
 ];
+
+type ClaimMap = Record<string, unknown>;
+
+function getString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function getInitials(name: string, fallback: string): string {
+  const source = name.trim() || fallback.trim() || 'Admin';
+  const parts = source.split(/\s+/).filter(Boolean);
+  const initials = parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
+  return initials || 'AD';
+}
 
 function BrandLogo() {
   return (
@@ -100,6 +114,8 @@ function AdminSidebar() {
 }
 
 function AdminTopbar() {
+  const { user, roles, signOut } = useAuth();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window === 'undefined') return false;
 
@@ -115,6 +131,13 @@ function AdminTopbar() {
     root.style.colorScheme = isDarkMode ? 'dark' : 'light';
     window.localStorage.setItem('admin-theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
+
+  const profile = user?.profile as ClaimMap | undefined;
+  const username = getString(profile?.preferred_username);
+  const email = getString(profile?.email);
+  const displayName = getString(profile?.name) || username || 'Current user';
+  const initials = getInitials(displayName, username || email);
+  const primaryRole = roles[0] ?? 'Authenticated user';
 
   return (
     <div className="flex min-w-0 items-center justify-end gap-3">
@@ -158,14 +181,65 @@ function AdminTopbar() {
         <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />
       </button>
 
-      <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/20">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#006948] to-[#6366f1] text-xs font-bold text-white">
-          AD
-        </span>
-        <div className="hidden leading-tight md:block">
-          <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">Admin</p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">admin@lt.co.ke</p>
-        </div>
+      <div className="relative">
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={isUserMenuOpen}
+          onClick={() => setIsUserMenuOpen((value) => !value)}
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-2 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/20 dark:hover:bg-slate-800"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#006948] to-[#2563eb] text-xs font-bold text-white">
+            {initials}
+          </span>
+          <span className="hidden min-w-0 leading-tight text-left md:block">
+            <span className="block max-w-36 truncate text-xs font-semibold text-slate-900 dark:text-slate-100">{displayName}</span>
+            <span className="block max-w-36 truncate text-[11px] text-slate-400 dark:text-slate-500">{email || primaryRole}</span>
+          </span>
+          <ChevronDown className="h-4 w-4 text-slate-400" />
+        </button>
+
+        {isUserMenuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+              <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{displayName}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{email || username || primaryRole}</p>
+            </div>
+            <Link
+              role="menuitem"
+              to={ROUTES.ACCOUNT_PROFILE}
+              onClick={() => setIsUserMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <UserCircle className="h-4 w-4" />
+              My profile
+            </Link>
+            <Link
+              role="menuitem"
+              to={ROUTES.AUTH_ME}
+              onClick={() => setIsUserMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <KeyRound className="h-4 w-4" />
+              Auth details
+            </Link>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setIsUserMenuOpen(false);
+                void signOut();
+              }}
+              className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

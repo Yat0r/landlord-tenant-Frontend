@@ -1,8 +1,10 @@
 export const ROUTES = {
   // Public / Auth
+  ONBOARDING: '/onboarding',
   LOGIN: '/login',
   AUTH_CALLBACK: '/auth/callback',
   AUTH_ME: '/auth/me',
+  ACCOUNT_PROFILE: '/account/profile',
   SIGNUP_TENANT: '/signup/tenant',
   LANDLORD_ACCESS: '/landlord-access',
 

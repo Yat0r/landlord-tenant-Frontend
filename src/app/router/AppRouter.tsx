@@ -19,6 +19,8 @@ import AuthCallbackPage from '@/pages/auth/AuthCallbackPage';
 import AuthMePage from '@/pages/auth/AuthMePage';
 import TenantSignupPage from '@/pages/auth/TenantSignupPage';
 import LandlordAccessPage from '@/pages/auth/LandlordAccessPage';
+import AccountProfilePage from '@/pages/account/AccountProfilePage';
+import OnboardingPage from '@/pages/public/OnboardingPage';
 
 // Error pages
 import UnauthorizedPage from '@/pages/errors/UnauthorizedPage';
@@ -31,6 +33,7 @@ import LandlordsPage from '@/features/admin/landlords/LandlordsPage';
 import AddLandlordPage from '@/features/admin/landlords/AddLandlordPage';
 import PropertyManagerDashboardPage from '@/pages/propertymanager/PropertyManagerDashboardPage';
 import LandlordDashboardPage from '@/pages/landlord/LandlordDashboardPage';
+import LandlordPropertiesPage from '@/features/landlord/properties/LandlordPropertiesPage';
 import TenantDashboardPage from '@/pages/tenant/TenantDashboardPage';
 import { PlannedState } from '@/components/feedback/PlannedState';
 
@@ -39,6 +42,8 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         {/* ── Public routes ───────────────────────────────────────────── */}
+        <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
+
         <Route element={<AuthLayout />}>
           <Route path={ROUTES.LOGIN} element={<LoginPage />} />
           <Route path={ROUTES.SIGNUP_TENANT} element={<TenantSignupPage />} />
@@ -52,6 +57,7 @@ export function AppRouter() {
         {/* ── Protected (any authenticated user) ──────────────────────── */}
         <Route element={<ProtectedRoute />}>
           <Route path={ROUTES.AUTH_ME} element={<AuthMePage />} />
+          <Route path={ROUTES.ACCOUNT_PROFILE} element={<AccountProfilePage />} />
         </Route>
 
         {/* ── Admin portal ─────────────────────────────────────────────── */}
@@ -94,8 +100,8 @@ export function AppRouter() {
           <Route element={<RoleGuard roles={[ROLES.LANDLORD]} />}>
             <Route element={<LandlordLayout />}>
               <Route path={ROUTES.LANDLORD_DASHBOARD} element={<LandlordDashboardPage />} />
-              <Route path={ROUTES.LANDLORD_PROFILE} element={<PlannedState feature="My Profile" />} />
-              <Route path={ROUTES.LANDLORD_PROPERTIES} element={<PlannedState feature="My Properties" />} />
+              <Route path={ROUTES.LANDLORD_PROFILE} element={<AccountProfilePage />} />
+              <Route path={ROUTES.LANDLORD_PROPERTIES} element={<LandlordPropertiesPage />} />
               <Route path={ROUTES.LANDLORD_TENANTS} element={<PlannedState feature="My Tenants" />} />
               <Route path={ROUTES.LANDLORD_LEASES} element={<PlannedState feature="My Leases" />} />
               <Route path={ROUTES.LANDLORD_PAYMENTS} element={<PlannedState feature="Payments" />} />
@@ -110,7 +116,7 @@ export function AppRouter() {
           <Route element={<RoleGuard roles={[ROLES.TENANT]} />}>
             <Route element={<TenantLayout />}>
               <Route path={ROUTES.TENANT_DASHBOARD} element={<TenantDashboardPage />} />
-              <Route path={ROUTES.TENANT_PROFILE} element={<PlannedState feature="My Profile" />} />
+              <Route path={ROUTES.TENANT_PROFILE} element={<AccountProfilePage />} />
               <Route path={ROUTES.TENANT_LEASES} element={<PlannedState feature="My Lease" />} />
               <Route path={ROUTES.TENANT_PAYMENTS} element={<PlannedState feature="My Payments" />} />
               <Route path={ROUTES.TENANT_MAINTENANCE} element={<PlannedState feature="Maintenance Requests" />} />
@@ -120,7 +126,7 @@ export function AppRouter() {
         </Route>
 
         {/* ── Fallback ─────────────────────────────────────────────────── */}
-        <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+        <Route path="/" element={<Navigate to={ROUTES.ONBOARDING} replace />} />
         <Route path="*" element={<Navigate to={ROUTES.UNAUTHORIZED} replace />} />
       </Routes>
     </BrowserRouter>

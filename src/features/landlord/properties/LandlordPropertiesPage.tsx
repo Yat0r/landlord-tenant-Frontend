@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   AlertTriangle,
   Building2,
@@ -8,11 +8,11 @@ import {
   DoorOpen,
   FileText,
   Home,
-  HousePlus,
   Mail,
   MapPin,
   MoreVertical,
   Phone,
+  Plus,
   RefreshCw,
   Search,
   User,
@@ -27,20 +27,15 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
 import { LoadingState } from '@/components/feedback/LoadingState';
-import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { handleApiError } from '@/api/helpers/apiHelpers';
 import { formatCurrency, formatDate } from '@/utils/formatting/formatters';
 import {
-  useAdminLandlords,
-  useAdminLeases,
-  useAdminMaintenanceRequests,
-  useAdminPayments,
-  useAdminProperties,
-  useAdminTenants,
-  useCreateProperty,
-} from '@/features/admin/properties/hooks/useAdminProperties';
+  useLandlordLeases,
+  useLandlordMaintenanceRequests,
+  useLandlordPayments,
+  useLandlordProperties,
+  useLandlordTenants,
+} from './hooks/useLandlordProperties';
 import type {
   LeaseEntity,
   MaintenanceRequestEntity,
@@ -102,6 +97,7 @@ type ApiUnit = {
   depositAmount?: number | null;
   tenantId?: string | null;
   currentTenantId?: string | null;
+  tenantName?: string | null;
 };
 
 interface UnitRow {
@@ -115,6 +111,7 @@ interface UnitRow {
   leases: LeaseRecord[];
   payments: PaymentRecord[];
   maintenance: MaintenanceRecord[];
+  source: 'unit' | 'related';
 }
 
 interface PropertyModel {
@@ -124,16 +121,16 @@ interface PropertyModel {
   tenants: TenantRecord[];
   payments: PaymentRecord[];
   maintenance: MaintenanceRecord[];
-  landlordName?: string;
   availableUnits?: number;
   monthlyExpectedRent?: number;
   outstandingBalance?: number;
 }
 
-interface TenantContext {
-  property: PropertyModel;
-  unit?: UnitRow;
-  lease?: LeaseRecord;
+interface RelatedSupport {
+  tenants: boolean;
+  leases: boolean;
+  payments: boolean;
+  maintenance: boolean;
 }
 
 const propertyFilters: Array<{ label: string; value: PropertyFilter }> = [
@@ -153,15 +150,6 @@ const unitTypeFilters: Array<{ label: string; value: UnitTypeFilter }> = [
   { label: 'Shops', value: 'shop' },
   { label: 'Offices', value: 'office' },
 ];
-
-const emptyForm = {
-  name: '',
-  address: '',
-  totalUnits: '',
-  monthlyRent: '',
-  landlordId: '',
-  photoUrl: '',
-};
 
 function normalizeStatus(value?: string | null) {
   return value?.trim().toLowerCase().replace(/\s+/g, '_') ?? '';
@@ -202,7 +190,13 @@ function moneyValue(value?: number | null) {
 
 function initials(value?: string | null) {
   if (!value) return 'PR';
-  return value.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 function unitNumberFromUnit(unit: ApiUnit) {
@@ -233,6 +227,7 @@ function isMaintenanceOpen(request: MaintenanceRecord) {
 function getBalance(payments: PaymentRecord[], lease?: LeaseRecord) {
   const leaseBalance = moneyValue(lease?.balance) ?? moneyValue(lease?.outstandingBalance);
   if (leaseBalance !== undefined) return leaseBalance;
+
   const paymentWithBalance = payments.find((payment) => moneyValue(payment.balance) !== undefined || moneyValue(payment.outstandingBalance) !== undefined);
   return moneyValue(paymentWithBalance?.balance) ?? moneyValue(paymentWithBalance?.outstandingBalance);
 }
@@ -247,17 +242,14 @@ function buildPropertyModels({
   leases,
   payments,
   maintenance,
-  landlords,
 }: {
   properties: ExtendedProperty[];
   tenants: TenantRecord[];
   leases: LeaseRecord[];
   payments: PaymentRecord[];
   maintenance: MaintenanceRecord[];
-  landlords: Array<{ id: string; name: string }>;
 }): PropertyModel[] {
   const tenantById = new Map(tenants.map((tenant) => [tenant.id, tenant]));
-  const landlordById = new Map(landlords.map((landlord) => [landlord.id, landlord.name]));
   const paymentsByLeaseId = new Map<string, PaymentRecord[]>();
 
   payments.forEach((payment) => {
@@ -276,6 +268,7 @@ function buildPropertyModels({
     const propertyTenants = Array.from(tenantIds)
       .map((tenantId) => tenantById.get(tenantId))
       .filter((tenant): tenant is TenantRecord => Boolean(tenant));
+
     const unitMap = new Map<string, UnitRow>();
 
     property.units?.forEach((unit) => {
@@ -292,6 +285,7 @@ function buildPropertyModels({
         leases: [],
         payments: [],
         maintenance: [],
+        source: 'unit',
       });
     });
 
@@ -300,16 +294,19 @@ function buildPropertyModels({
       if (!key) return;
       const existing = unitMap.get(key);
       const paymentsForLease = paymentsByLeaseId.get(lease.id) ?? [];
-      const current: UnitRow = existing ?? {
-        id: key,
-        unitNumber: lease.unitNumber ?? lease.propertyUnit ?? key,
-        unitType: undefined,
-        status: isLeaseActive(lease) ? 'occupied' : undefined,
-        monthlyRent: lease.monthlyRent,
-        leases: [],
-        payments: [],
-        maintenance: [],
-      };
+      const current: UnitRow =
+        existing ??
+        {
+          id: key,
+          unitNumber: lease.unitNumber ?? lease.propertyUnit ?? key,
+          unitType: undefined,
+          status: isLeaseActive(lease) ? 'occupied' : undefined,
+          monthlyRent: lease.monthlyRent,
+          leases: [],
+          payments: [],
+          maintenance: [],
+          source: 'related',
+        };
 
       current.leases.push(lease);
       current.payments.push(...paymentsForLease);
@@ -326,6 +323,7 @@ function buildPropertyModels({
       const existing = unitMap.get(key);
       if (!existing) return;
       if (!existing.payments.some((item) => item.id === payment.id)) existing.payments.push(payment);
+      unitMap.set(key, existing);
     });
 
     propertyMaintenance.forEach((request) => {
@@ -334,6 +332,7 @@ function buildPropertyModels({
       const existing = unitMap.get(key);
       if (!existing) return;
       existing.maintenance.push(request);
+      unitMap.set(key, existing);
     });
 
     const units = Array.from(unitMap.values()).sort((a, b) => a.unitNumber.localeCompare(b.unitNumber));
@@ -352,7 +351,6 @@ function buildPropertyModels({
       tenants: propertyTenants,
       payments: propertyPayments,
       maintenance: propertyMaintenance,
-      landlordName: property.landlordId ? landlordById.get(property.landlordId) : undefined,
       availableUnits: typeof property.totalUnits === 'number' && typeof property.occupiedUnits === 'number'
         ? Math.max(property.totalUnits - property.occupiedUnits, 0)
         : undefined,
@@ -373,11 +371,13 @@ function DateText({ value }: { value?: string | null }) {
 
 function StatusBadge({ status, variant }: { status?: string | null; variant?: BadgeVariant }) {
   const normalized = normalizeStatus(status);
-  const badgeVariant = variant ?? (normalized === 'active' || normalized === 'occupied' || normalized === 'confirmed'
-    ? 'success'
-    : normalized === 'open' || normalized === 'in_progress' || normalized === 'available'
-      ? 'warning'
-      : 'neutral');
+  const badgeVariant =
+    variant ??
+    (normalized === 'active' || normalized === 'occupied' || normalized === 'confirmed'
+      ? 'success'
+      : normalized === 'open' || normalized === 'in_progress' || normalized === 'available'
+        ? 'warning'
+        : 'neutral');
 
   return <Badge variant={badgeVariant}>{statusText(status)}</Badge>;
 }
@@ -399,7 +399,6 @@ function PropertyToolbar({
   onPropertyFilterChange,
   onUnitTypeFilterChange,
   onRefresh,
-  onAdd,
 }: {
   search: string;
   propertyFilter: PropertyFilter;
@@ -409,7 +408,6 @@ function PropertyToolbar({
   onPropertyFilterChange: (value: PropertyFilter) => void;
   onUnitTypeFilterChange: (value: UnitTypeFilter) => void;
   onRefresh: () => void;
-  onAdd: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -426,10 +424,15 @@ function PropertyToolbar({
               <RefreshCw size={14} />
               Refresh
             </Button>
-            <Button type="button" size="sm" onClick={onAdd} className="bg-white text-[#006948] hover:bg-emerald-50">
-              <HousePlus size={14} />
-              Add Property
-            </Button>
+            <button
+              type="button"
+              disabled
+              className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-semibold text-emerald-50 opacity-80"
+              title="POST /api/landlord/me/properties is not documented yet."
+            >
+              <Plus size={14} />
+              Add Property — Requires backend support
+            </button>
           </div>
         </div>
       </section>
@@ -587,11 +590,19 @@ function PropertyUnitsTable({
           {visibleUnits.map((unit) => {
             const openMaintenance = unit.maintenance.filter(isMaintenanceOpen).length;
             const balance = getBalance(unit.payments, unit.currentLease);
+            const leaseStatus = unit.currentLease?.status;
+
             return (
-              <tr key={unit.id} onClick={() => onUnitClick(unit)} className="cursor-pointer text-slate-600 transition-colors hover:bg-emerald-50/40">
+              <tr
+                key={unit.id}
+                onClick={() => onUnitClick(unit)}
+                className="cursor-pointer text-slate-600 transition-colors hover:bg-emerald-50/40"
+              >
                 <td className="px-4 py-3 font-semibold text-slate-950">{unit.unitNumber}</td>
                 <td className="px-4 py-3">{unitTypeLabel(unit.unitType)}</td>
-                <td className="px-4 py-3"><StatusBadge status={unit.status ?? (unit.currentTenant ? 'occupied' : undefined)} /></td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={unit.status ?? (unit.currentTenant ? 'occupied' : undefined)} />
+                </td>
                 <td className="px-4 py-3">
                   {unit.currentTenant ? (
                     <button
@@ -608,7 +619,7 @@ function PropertyUnitsTable({
                     <span className="text-slate-400">No current tenant</span>
                   )}
                 </td>
-                <td className="px-4 py-3">{unit.currentLease?.status ? <StatusBadge status={unit.currentLease.status} /> : '—'}</td>
+                <td className="px-4 py-3">{leaseStatus ? <StatusBadge status={leaseStatus} /> : '—'}</td>
                 <td className="px-4 py-3 font-semibold text-slate-900"><MoneyText value={unit.monthlyRent} /></td>
                 <td className="px-4 py-3"><MoneyText value={balance} /></td>
                 <td className="px-4 py-3">{openMaintenance > 0 ? `${openMaintenance} open` : '0'}</td>
@@ -658,7 +669,6 @@ function PropertyCard({
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusBadge status={status} />
                 <Badge variant="neutral">{property.propertyType ?? property.type ?? 'Not available yet'}</Badge>
-                {model.landlordName && <Badge variant="neutral">{model.landlordName}</Badge>}
                 <span className="font-mono text-[11px] text-slate-400">{property.id}</span>
               </div>
             </div>
@@ -674,17 +684,24 @@ function PropertyCard({
           </button>
         </div>
       </div>
+
       <div className="space-y-4 bg-slate-50 px-4 py-4">
         <PropertyCardStats model={model} />
         <PropertyUnitsTable
           units={model.units}
           unitTypeFilter={unitTypeFilter}
           onUnitClick={(unit) => onUnitClick(model, unit)}
-          onTenantClick={(tenant) => onTenantClick(tenant, { property: model })}
+          onTenantClick={(tenant) => onTenantClick(tenant, { property: model, unit: undefined })}
         />
       </div>
     </article>
   );
+}
+
+interface TenantContext {
+  property: PropertyModel;
+  unit?: UnitRow;
+  lease?: LeaseRecord;
 }
 
 function UnitTenantsDrawer({
@@ -701,6 +718,7 @@ function UnitTenantsDrawer({
   onTenantClick: (tenant: TenantRecord, context: TenantContext) => void;
 }) {
   if (!selection) return null;
+
   const { property, unit } = selection;
   const tenantHistory = unit.leases
     .map((lease) => ({
@@ -720,8 +738,12 @@ function UnitTenantsDrawer({
         <div className="border-b border-slate-200 px-5 py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Unit {unit.unitNumber} — {unitTypeLabel(unit.unitType)}</h2>
-              <p className="mt-1 text-sm text-slate-500">{property.property.name} · {statusText(unit.status ?? (currentTenant ? 'occupied' : undefined))}</p>
+              <h2 className="text-lg font-semibold text-slate-950">
+                Unit {unit.unitNumber} — {unitTypeLabel(unit.unitType)}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {property.property.name} · {statusText(unit.status ?? (currentTenant ? 'occupied' : undefined))}
+              </p>
             </div>
             <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
               <X size={18} />
@@ -739,19 +761,29 @@ function UnitTenantsDrawer({
                 key={value}
                 type="button"
                 onClick={() => onTabChange(value as UnitDrawerTab)}
-                className={clsx('rounded-full px-3 py-1.5 text-xs font-semibold transition-colors', activeTab === value ? 'bg-[#006948] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}
+                className={clsx(
+                  'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+                  activeTab === value ? 'bg-[#006948] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
               >
                 {label}
               </button>
             ))}
           </div>
         </div>
+
         <div className="min-h-0 flex-1 overflow-y-auto bg-slate-100 p-5">
           {activeTab === 'current' && (
             currentTenant ? (
-              <DetailCard title="Current Tenant">
-                <button type="button" onClick={() => onTenantClick(currentTenant, { property, unit, lease: currentLease })} className="flex items-center gap-3 text-left">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-xs font-bold text-white">{initials(currentTenant.name)}</span>
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => onTenantClick(currentTenant, { property, unit, lease: currentLease })}
+                  className="flex items-center gap-3 text-left"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-xs font-bold text-white">
+                    {initials(currentTenant.name)}
+                  </span>
                   <span>
                     <span className="block font-semibold text-slate-950">{currentTenant.name}</span>
                     <span className="block text-sm text-slate-500">{currentTenant.email}</span>
@@ -766,33 +798,94 @@ function UnitTenantsDrawer({
                   <Info label="Current Balance" value={<MoneyText value={getBalance(unit.payments, currentLease)} />} />
                   <Info label="Open Maintenance" value={unit.maintenance.filter(isMaintenanceOpen).length} />
                 </dl>
-              </DetailCard>
+              </div>
             ) : (
               <EmptyState title="No current tenant found for this unit yet." />
             )
           )}
-          {activeTab === 'tenants' && (tenantHistory.length > 0 ? <TenantHistoryTable rows={tenantHistory} property={property} unit={unit} onTenantClick={onTenantClick} /> : <EmptyState title="No tenants found for this unit yet." />)}
-          {activeTab === 'leases' && (unit.leases.length > 0 ? (
-            <SimpleTable headers={['Lease', 'Tenant', 'Lease Period', 'Lease Status', 'Monthly Rent']} rows={unit.leases.map((lease) => [lease.id, property.tenants.find((tenant) => tenant.id === lease.tenantId)?.name ?? lease.tenantId, `${formatDate(lease.startDate)} to ${formatDate(lease.endDate)}`, <StatusBadge status={lease.status} />, <MoneyText value={lease.monthlyRent} />])} />
-          ) : <EmptyState title="No lease history found for this unit yet." />)}
-          {activeTab === 'payments' && (unit.payments.length > 0 ? (
-            <SimpleTable headers={['Payment', 'Tenant', 'Amount', 'Status', 'Paid Date']} rows={unit.payments.map((payment) => [payment.id, payment.tenantName ?? property.tenants.find((tenant) => tenant.id === payment.tenantId)?.name ?? 'Not available yet', <MoneyText value={payment.amount} />, <StatusBadge status={payment.status} />, <DateText value={payment.paidDate ?? payment.createdAt} />])} />
-          ) : <EmptyState title="No payments found for this unit yet." />)}
-          {activeTab === 'maintenance' && (unit.maintenance.length > 0 ? (
-            <SimpleTable headers={['Issue', 'Tenant', 'Status', 'Priority', 'Reported']} rows={unit.maintenance.map((request) => [request.title ?? request.issueSummary ?? 'Maintenance request', request.tenantName ?? property.tenants.find((tenant) => tenant.id === request.tenantId)?.name ?? 'Not available yet', <StatusBadge status={request.status} />, statusText(request.priority), <DateText value={request.createdAt} />])} />
-          ) : <EmptyState title="No maintenance requests found for this unit yet." />)}
+
+          {activeTab === 'tenants' && (
+            tenantHistory.length > 0 ? (
+              <TenantHistoryTable rows={tenantHistory} property={property} unit={unit} onTenantClick={onTenantClick} />
+            ) : (
+              <EmptyState title="No tenants found for this unit yet." />
+            )
+          )}
+
+          {activeTab === 'leases' && (
+            unit.leases.length > 0 ? (
+              <SimpleTable
+                headers={['Lease', 'Tenant', 'Lease Period', 'Lease Status', 'Monthly Rent']}
+                rows={unit.leases.map((lease) => [
+                  lease.id,
+                  property.tenants.find((tenant) => tenant.id === lease.tenantId)?.name ?? lease.tenantId,
+                  `${formatDate(lease.startDate)} to ${formatDate(lease.endDate)}`,
+                  <StatusBadge status={lease.status} />,
+                  <MoneyText value={lease.monthlyRent} />,
+                ])}
+              />
+            ) : (
+              <EmptyState title="No lease history found for this unit yet." />
+            )
+          )}
+
+          {activeTab === 'payments' && (
+            unit.payments.length > 0 ? (
+              <SimpleTable
+                headers={['Payment', 'Tenant', 'Amount', 'Status', 'Paid Date']}
+                rows={unit.payments.map((payment) => [
+                  payment.id,
+                  payment.tenantName ?? property.tenants.find((tenant) => tenant.id === payment.tenantId)?.name ?? 'Not available yet',
+                  <MoneyText value={payment.amount} />,
+                  <StatusBadge status={payment.status} />,
+                  <DateText value={payment.paidDate ?? payment.createdAt} />,
+                ])}
+              />
+            ) : (
+              <EmptyState title="No payments found for this unit yet." />
+            )
+          )}
+
+          {activeTab === 'maintenance' && (
+            unit.maintenance.length > 0 ? (
+              <SimpleTable
+                headers={['Issue', 'Tenant', 'Status', 'Priority', 'Reported']}
+                rows={unit.maintenance.map((request) => [
+                  request.title ?? request.issueSummary ?? 'Maintenance request',
+                  request.tenantName ?? property.tenants.find((tenant) => tenant.id === request.tenantId)?.name ?? 'Not available yet',
+                  <StatusBadge status={request.status} />,
+                  statusText(request.priority),
+                  <DateText value={request.createdAt} />,
+                ])}
+              />
+            ) : (
+              <EmptyState title="No maintenance requests found for this unit yet." />
+            )
+          )}
         </div>
       </aside>
     </div>
   );
 }
 
-function TenantHistoryTable({ rows, property, unit, onTenantClick }: { rows: Array<{ lease: LeaseRecord; tenant?: TenantRecord; payments: PaymentRecord[] }>; property: PropertyModel; unit: UnitRow; onTenantClick: (tenant: TenantRecord, context: TenantContext) => void }) {
+function TenantHistoryTable({
+  rows,
+  property,
+  unit,
+  onTenantClick,
+}: {
+  rows: Array<{ lease: LeaseRecord; tenant?: TenantRecord; payments: PaymentRecord[]; maintenance: MaintenanceRecord[] }>;
+  property: PropertyModel;
+  unit: UnitRow;
+  onTenantClick: (tenant: TenantRecord, context: TenantContext) => void;
+}) {
   return (
     <SimpleTable
       headers={['Tenant', 'Phone', 'Email', 'Lease Period', 'Lease Status', 'Total Paid', 'Balance', 'Action']}
       rows={rows.map(({ tenant, lease, payments }) => {
-        const totalPaid = payments.length > 0 && payments.every((payment) => moneyValue(payment.amount) !== undefined) ? payments.reduce((total, payment) => total + payment.amount, 0) : undefined;
+        const totalPaid = payments.length > 0 && payments.every((payment) => moneyValue(payment.amount) !== undefined)
+          ? payments.reduce((total, payment) => total + payment.amount, 0)
+          : undefined;
         return [
           tenant?.name ?? 'Not available yet',
           tenant?.phone ?? 'Not available yet',
@@ -801,15 +894,28 @@ function TenantHistoryTable({ rows, property, unit, onTenantClick }: { rows: Arr
           <StatusBadge status={lease.status} />,
           <MoneyText value={totalPaid} />,
           <MoneyText value={getBalance(payments, lease)} />,
-          tenant ? <Button type="button" size="sm" variant="outline" onClick={() => onTenantClick(tenant, { property, unit, lease })}>View</Button> : 'Not available yet',
+          tenant ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => onTenantClick(tenant, { property, unit, lease })}>
+              View
+            </Button>
+          ) : (
+            'Not available yet'
+          ),
         ];
       })}
     />
   );
 }
 
-function TenantDetailsDrawer({ selection, onClose }: { selection: { tenant: TenantRecord; context?: TenantContext } | null; onClose: () => void }) {
+function TenantDetailsDrawer({
+  selection,
+  onClose,
+}: {
+  selection: { tenant: TenantRecord; context?: TenantContext } | null;
+  onClose: () => void;
+}) {
   if (!selection) return null;
+
   const { tenant, context } = selection;
   const unit = context?.unit;
   const property = context?.property;
@@ -824,13 +930,17 @@ function TenantDetailsDrawer({ selection, onClose }: { selection: { tenant: Tena
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-sm font-bold text-white">{initials(tenant.name)}</span>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-sm font-bold text-white">
+              {initials(tenant.name)}
+            </span>
             <div className="min-w-0">
               <h2 className="truncate text-lg font-semibold text-slate-950">{tenant.name}</h2>
               <p className="truncate text-sm text-slate-500">{tenant.email}</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={18} /></button>
+          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <X size={18} />
+          </button>
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-slate-100 px-5 py-4">
           <DetailCard title="Profile">
@@ -866,7 +976,9 @@ function TenantDetailsDrawer({ selection, onClose }: { selection: { tenant: Tena
                   </div>
                 ))}
               </div>
-            ) : <UnsupportedLabel>Not available yet</UnsupportedLabel>}
+            ) : (
+              <UnsupportedLabel>Not available yet</UnsupportedLabel>
+            )}
           </DetailCard>
         </div>
       </aside>
@@ -906,11 +1018,23 @@ function SimpleTable({ headers, rows }: { headers: string[]; rows: ReactNode[][]
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="w-full min-w-[760px] text-left text-sm">
         <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-          <tr>{headers.map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
+          <tr>
+            {headers.map((header) => (
+              <th key={header} className="px-4 py-3">
+                {header}
+              </th>
+            ))}
+          </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 text-slate-700">{cell}</td>)}</tr>
+            <tr key={rowIndex}>
+              {row.map((cell, cellIndex) => (
+                <td key={cellIndex} className="px-4 py-3 text-slate-700">
+                  {cell}
+                </td>
+              ))}
+            </tr>
           ))}
         </tbody>
       </table>
@@ -926,10 +1050,13 @@ function matchesSearch(model: PropertyModel, term: string) {
     model.property.id,
     model.property.propertyType,
     model.property.type,
-    model.landlordName,
     ...model.units.map((unit) => unit.unitNumber),
     ...model.units.map((unit) => unit.currentTenant?.name),
-  ].filter(Boolean).join(' ').toLowerCase().includes(term);
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .includes(term);
 }
 
 function matchesPropertyFilter(model: PropertyModel, filter: PropertyFilter) {
@@ -945,127 +1072,64 @@ function matchesUnitTypeFilter(model: PropertyModel, filter: UnitTypeFilter) {
   return model.units.some((unit) => normalizeUnitType(unit.unitType) === filter);
 }
 
-function AddPropertyModal({
-  isOpen,
-  landlords,
-  isSaving,
-  error,
-  onClose,
-  onSubmit,
-}: {
-  isOpen: boolean;
-  landlords: Array<{ id: string; name: string }>;
-  isSaving: boolean;
-  error?: string;
-  onClose: () => void;
-  onSubmit: (payload: typeof emptyForm) => void;
-}) {
-  const [form, setForm] = useState(emptyForm);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    onSubmit(form);
-  }
-
-  function close() {
-    setForm(emptyForm);
-    onClose();
-  }
-
-  return (
-    <Modal isOpen={isOpen} onClose={close} title="Add Property" size="lg">
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <Input label="Property name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
-        <Input label="Address" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} required />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Total units" type="number" min={0} value={form.totalUnits} onChange={(event) => setForm((current) => ({ ...current, totalUnits: event.target.value }))} required />
-          <Input label="Monthly rent" type="number" min={0} value={form.monthlyRent} onChange={(event) => setForm((current) => ({ ...current, monthlyRent: event.target.value }))} required />
-        </div>
-        <Select
-          label="Landlord"
-          value={form.landlordId}
-          onChange={(event) => setForm((current) => ({ ...current, landlordId: event.target.value }))}
-          options={[{ value: '', label: 'No landlord selected' }, ...landlords.map((landlord) => ({ value: landlord.id, label: landlord.name }))]}
-        />
-        <Input label="Photo URL" value={form.photoUrl} onChange={(event) => setForm((current) => ({ ...current, photoUrl: event.target.value }))} />
-        {error && <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
-          <Button type="submit" isLoading={isSaving}><HousePlus size={14} />Save property</Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-export default function AdminPropertiesPage() {
+export default function LandlordPropertiesPage() {
   const [search, setSearch] = useState('');
   const [propertyFilter, setPropertyFilter] = useState<PropertyFilter>('all');
   const [unitTypeFilter, setUnitTypeFilter] = useState<UnitTypeFilter>('all');
   const [unitSelection, setUnitSelection] = useState<{ property: PropertyModel; unit: UnitRow } | null>(null);
   const [tenantSelection, setTenantSelection] = useState<{ tenant: TenantRecord; context?: TenantContext } | null>(null);
   const [unitDrawerTab, setUnitDrawerTab] = useState<UnitDrawerTab>('current');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createError, setCreateError] = useState<string | undefined>();
 
-  const propertiesQuery = useAdminProperties(200);
-  const landlordsQuery = useAdminLandlords(200);
-  const tenantsQuery = useAdminTenants(500);
-  const leasesQuery = useAdminLeases(500);
-  const paymentsQuery = useAdminPayments(500);
-  const maintenanceQuery = useAdminMaintenanceRequests(500);
-  const createProperty = useCreateProperty();
+  const propertiesQuery = useLandlordProperties();
+  const tenantsQuery = useLandlordTenants();
+  const leasesQuery = useLandlordLeases();
+  const paymentsQuery = useLandlordPayments();
+  const maintenanceQuery = useLandlordMaintenanceRequests();
+
+  const support: RelatedSupport = {
+    tenants: !tenantsQuery.isError,
+    leases: !leasesQuery.isError,
+    payments: !paymentsQuery.isError,
+    maintenance: !maintenanceQuery.isError,
+  };
 
   const models = useMemo(
     () =>
       buildPropertyModels({
-        properties: (propertiesQuery.data?.items ?? []) as ExtendedProperty[],
-        tenants: (tenantsQuery.data?.items ?? []) as TenantRecord[],
-        leases: (leasesQuery.data?.items ?? []) as LeaseRecord[],
-        payments: (paymentsQuery.data?.items ?? []) as PaymentRecord[],
-        maintenance: (maintenanceQuery.data?.items ?? []) as MaintenanceRecord[],
-        landlords: landlordsQuery.data?.items ?? [],
+        properties: (propertiesQuery.data ?? []) as ExtendedProperty[],
+        tenants: (tenantsQuery.data ?? []) as TenantRecord[],
+        leases: (leasesQuery.data ?? []) as LeaseRecord[],
+        payments: (paymentsQuery.data ?? []) as PaymentRecord[],
+        maintenance: (maintenanceQuery.data ?? []) as MaintenanceRecord[],
       }),
-    [landlordsQuery.data?.items, leasesQuery.data?.items, maintenanceQuery.data?.items, paymentsQuery.data?.items, propertiesQuery.data?.items, tenantsQuery.data?.items]
+    [leasesQuery.data, maintenanceQuery.data, paymentsQuery.data, propertiesQuery.data, tenantsQuery.data]
   );
 
   const filteredModels = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return models.filter((model) => matchesSearch(model, term) && matchesPropertyFilter(model, propertyFilter) && matchesUnitTypeFilter(model, unitTypeFilter));
+    return models.filter(
+      (model) =>
+        matchesSearch(model, term) &&
+        matchesPropertyFilter(model, propertyFilter) &&
+        matchesUnitTypeFilter(model, unitTypeFilter)
+    );
   }, [models, propertyFilter, search, unitTypeFilter]);
 
   function refreshAll() {
     void propertiesQuery.refetch();
-    void landlordsQuery.refetch();
     void tenantsQuery.refetch();
     void leasesQuery.refetch();
     void paymentsQuery.refetch();
     void maintenanceQuery.refetch();
   }
 
-  async function handleCreate(payload: typeof emptyForm) {
-    setCreateError(undefined);
-    const totalUnits = Number(payload.totalUnits);
-    const monthlyRent = Number(payload.monthlyRent);
-    if (!payload.name.trim() || !payload.address.trim() || !Number.isFinite(totalUnits) || !Number.isFinite(monthlyRent)) {
-      setCreateError('Property name, address, total units, and monthly rent are required.');
-      return;
-    }
+  function handleUnitClick(property: PropertyModel, unit: UnitRow) {
+    setUnitSelection({ property, unit });
+    setUnitDrawerTab('current');
+  }
 
-    try {
-      await createProperty.mutateAsync({
-        name: payload.name.trim(),
-        address: payload.address.trim(),
-        totalUnits,
-        monthlyRent,
-        landlordId: payload.landlordId || undefined,
-        photoUrl: payload.photoUrl.trim() || undefined,
-      });
-      setIsCreateOpen(false);
-      refreshAll();
-    } catch (error) {
-      setCreateError(handleApiError(error).message);
-    }
+  function handleTenantClick(tenant: TenantRecord, context?: TenantContext) {
+    setTenantSelection({ tenant, context });
   }
 
   if (propertiesQuery.isPending) {
@@ -1088,15 +1152,23 @@ export default function AdminPropertiesPage() {
         onPropertyFilterChange={setPropertyFilter}
         onUnitTypeFilterChange={setUnitTypeFilter}
         onRefresh={refreshAll}
-        onAdd={() => setIsCreateOpen(true)}
       />
-      {(tenantsQuery.isError || leasesQuery.isError || paymentsQuery.isError || maintenanceQuery.isError) && (
+
+      {(!support.tenants || !support.leases || !support.payments || !support.maintenance) && (
         <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-          Some related property details require backend support or are temporarily unavailable. Property cards remain available from the admin properties API.
+          Some related property details require backend support. Property cards remain available from the landlord-scoped properties API.
         </div>
       )}
+
       {filteredModels.length === 0 ? (
-        <EmptyState title={models.length === 0 ? 'No properties found' : 'No properties match these filters'} description={models.length === 0 ? 'Create a property through the real API to begin.' : 'Try a different search term, property filter, or unit type filter.'} />
+        <EmptyState
+          title={models.length === 0 ? 'No properties found' : 'No properties match these filters'}
+          description={
+            models.length === 0
+              ? 'Properties will appear here when the backend returns records for your landlord account.'
+              : 'Try a different search term, property filter, or unit type filter.'
+          }
+        />
       ) : (
         <div className="mt-5 space-y-4">
           {filteredModels.map((model) => (
@@ -1104,25 +1176,21 @@ export default function AdminPropertiesPage() {
               key={model.property.id}
               model={model}
               unitTypeFilter={unitTypeFilter}
-              onUnitClick={(property, unit) => {
-                setUnitSelection({ property, unit });
-                setUnitDrawerTab('current');
-              }}
-              onTenantClick={(tenant, context) => setTenantSelection({ tenant, context })}
+              onUnitClick={handleUnitClick}
+              onTenantClick={handleTenantClick}
             />
           ))}
         </div>
       )}
-      <UnitTenantsDrawer selection={unitSelection} activeTab={unitDrawerTab} onTabChange={setUnitDrawerTab} onClose={() => setUnitSelection(null)} onTenantClick={(tenant, context) => setTenantSelection({ tenant, context })} />
-      <TenantDetailsDrawer selection={tenantSelection} onClose={() => setTenantSelection(null)} />
-      <AddPropertyModal
-        isOpen={isCreateOpen}
-        landlords={landlordsQuery.data?.items ?? []}
-        isSaving={createProperty.isPending}
-        error={createError}
-        onClose={() => setIsCreateOpen(false)}
-        onSubmit={(payload) => void handleCreate(payload)}
+
+      <UnitTenantsDrawer
+        selection={unitSelection}
+        activeTab={unitDrawerTab}
+        onTabChange={setUnitDrawerTab}
+        onClose={() => setUnitSelection(null)}
+        onTenantClick={handleTenantClick}
       />
+      <TenantDetailsDrawer selection={tenantSelection} onClose={() => setTenantSelection(null)} />
     </div>
   );
 }

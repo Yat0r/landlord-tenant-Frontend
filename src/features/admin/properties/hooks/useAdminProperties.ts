@@ -99,7 +99,7 @@ export function useCreateProperty() {
 
           return {
             ...current,
-            items: [createdProperty, ...current.items].slice(0, current.pageSize),
+            items: [...current.items, createdProperty],
             totalCount: current.totalCount + 1,
           };
         }
