@@ -28,7 +28,10 @@ import AccountNotLinkedPage from '@/pages/errors/AccountNotLinkedPage';
 
 // Portal pages
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import AdminLeasesPage from '@/pages/admin/AdminLeasesPage';
+import AdminPaymentsPage from '@/pages/admin/AdminPaymentsPage';
 import AdminPropertiesPage from '@/pages/admin/AdminPropertiesPage';
+import AdminTenantsPage from '@/pages/admin/AdminTenantsPage';
 import LandlordsPage from '@/features/admin/landlords/LandlordsPage';
 import AddLandlordPage from '@/features/admin/landlords/AddLandlordPage';
 import PropertyManagerDashboardPage from '@/pages/propertymanager/PropertyManagerDashboardPage';
@@ -67,10 +70,10 @@ export function AppRouter() {
               <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
               <Route path={ROUTES.ADMIN_LANDLORDS} element={<LandlordsPage />} />
               <Route path={ROUTES.ADMIN_LANDLORDS_NEW} element={<AddLandlordPage />} />
-              <Route path={ROUTES.ADMIN_TENANTS} element={<PlannedState feature="Tenants" />} />
+              <Route path={ROUTES.ADMIN_TENANTS} element={<AdminTenantsPage />} />
               <Route path={ROUTES.ADMIN_PROPERTIES} element={<AdminPropertiesPage />} />
-              <Route path={ROUTES.ADMIN_LEASES} element={<PlannedState feature="Leases" />} />
-              <Route path={ROUTES.ADMIN_PAYMENTS} element={<PlannedState feature="Payments" />} />
+              <Route path={ROUTES.ADMIN_LEASES} element={<AdminLeasesPage />} />
+              <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminPaymentsPage />} />
               <Route path={ROUTES.ADMIN_MAINTENANCE} element={<PlannedState feature="Maintenance" />} />
               <Route path={ROUTES.ADMIN_AUDIT_LOGS} element={<PlannedState feature="Audit Logs" />} />
               <Route path={ROUTES.ADMIN_REPORTS} element={<PlannedState feature="Reports" />} />
