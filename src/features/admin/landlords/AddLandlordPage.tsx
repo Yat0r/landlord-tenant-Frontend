@@ -42,7 +42,7 @@ const baseInputClass =
 function inputClass(error?: string): string {
   return error
     ? `${baseInputClass} border-red-300 focus:ring-red-200 focus:border-red-300`
-    : `${baseInputClass} border-slate-200 focus:ring-[#006948]/20 focus:border-[#006948]/40`;
+    : `${baseInputClass} border-slate-200 focus:ring-brand-primary/20 focus:border-brand-primary/40`;
 }
 
 function FormField({
@@ -182,7 +182,7 @@ export default function AddLandlordPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex items-center gap-2 bg-[#006948] hover:bg-[#005238] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-sm transition-colors"
+              className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-hover disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-sm transition-colors"
             >
               {isSaving && <RefreshCw size={14} className="animate-spin" />}
               {createLandlord.isPending ? 'Adding...' : 'Add Landlord'}

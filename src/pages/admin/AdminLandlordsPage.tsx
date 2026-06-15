@@ -252,7 +252,7 @@ export default function AdminLandlordsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <NavLink
                 to={ROUTES.ADMIN_LANDLORDS_NEW}
-                className="inline-flex items-center gap-2 rounded-md bg-[#006948] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#00573d]"
+                className="inline-flex items-center gap-2 rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-primary-hover"
               >
                 <HousePlus size={14} />
                 Add landlord
@@ -279,7 +279,7 @@ export default function AdminLandlordsPage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search by name or email"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#006948] focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-brand-primary focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-950"
                 />
               </label>
 
@@ -292,7 +292,7 @@ export default function AdminLandlordsPage() {
                     className={clsx(
                       'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
                       filter === item.value
-                        ? 'bg-[#006948] text-white'
+                        ? 'bg-brand-primary text-white'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                     )}
                   >
@@ -480,7 +480,7 @@ export default function AdminLandlordsPage() {
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-[#006948]"
+                    className="h-full rounded-full bg-brand-primary"
                     style={{ width: `${Math.round((linkedLandlords / totalLandlords) * 100)}%` }}
                   />
                 </div>
@@ -503,7 +503,7 @@ export default function AdminLandlordsPage() {
                   <span className="font-semibold text-slate-950 dark:text-slate-100">{totalProperties}</span>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-                  <div className="h-full rounded-full bg-violet-500" style={{ width: '100%' }} />
+                  <div className="h-full rounded-full bg-brand-info0" style={{ width: '100%' }} />
                 </div>
               </div>
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-950">
@@ -513,7 +513,7 @@ export default function AdminLandlordsPage() {
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-cyan-500"
+                    className="h-full rounded-full bg-brand-primary"
                     style={{ width: `${Math.round((activeLeases / totalProperties) * 100)}%` }}
                   />
                 </div>

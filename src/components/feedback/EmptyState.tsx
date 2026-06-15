@@ -16,12 +16,12 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-center">
-      <span className="text-gray-300 dark:text-slate-600">
+      <span className="text-brand-info-border dark:text-slate-600">
         {icon ?? <Inbox className="h-12 w-12" />}
       </span>
       <div>
-        <p className="font-medium text-gray-700 dark:text-slate-200">{title}</p>
-        {description && <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{description}</p>}
+        <p className="font-medium text-brand-text dark:text-slate-200">{title}</p>
+        {description && <p className="mt-1 text-sm text-brand-muted dark:text-slate-400">{description}</p>}
       </div>
       {action && <div className="mt-2">{action}</div>}
     </div>

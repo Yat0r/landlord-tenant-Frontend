@@ -123,7 +123,7 @@ export function TenantDetailsDrawer({
         <div className="border-b border-slate-100 px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#10B981] text-sm font-bold text-white">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
                 {getInitials(row.fullName)}
               </span>
               <div className="min-w-0">

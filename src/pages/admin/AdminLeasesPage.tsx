@@ -322,7 +322,7 @@ export default function AdminLeasesPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {supportsCreateLease && (
-            <Button type="button" onClick={() => setModal({ mode: 'create' })} className="rounded-xl bg-[#10B981] hover:bg-emerald-600">
+            <Button type="button" onClick={() => setModal({ mode: 'create' })} className="rounded-xl bg-brand-primary hover:bg-brand-primary-hover">
               <FilePlus2 className="h-4 w-4" />
               Create Lease
             </Button>
@@ -359,10 +359,10 @@ export default function AdminLeasesPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search tenant, property, unit, lease ID"
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#10B981] focus:bg-white"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-brand-primary focus:bg-white"
             />
           </label>
-          <select value={leaseFilter} onChange={(event) => setLeaseFilter(event.target.value as LeaseFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={leaseFilter} onChange={(event) => setLeaseFilter(event.target.value as LeaseFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="expired">Expired</option>
@@ -375,7 +375,7 @@ export default function AdminLeasesPage() {
               setPropertyFilter(event.target.value);
               setUnitFilter('all');
             }}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]"
+            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary"
           >
             <option value="all">All properties</option>
             {data.properties.map((property) => (
@@ -384,7 +384,7 @@ export default function AdminLeasesPage() {
               </option>
             ))}
           </select>
-          <select value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All units</option>
             {propertyUnits.map((unit) => (
               <option key={unit} value={unit}>
@@ -392,7 +392,7 @@ export default function AdminLeasesPage() {
               </option>
             ))}
           </select>
-          <select value={tenantFilter} onChange={(event) => setTenantFilter(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={tenantFilter} onChange={(event) => setTenantFilter(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All tenants</option>
             {data.tenants.map((tenant) => (
               <option key={tenant.id} value={tenant.id}>
@@ -400,14 +400,14 @@ export default function AdminLeasesPage() {
               </option>
             ))}
           </select>
-          <select value={expiryFilter} onChange={(event) => setExpiryFilter(event.target.value as ExpiryFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={expiryFilter} onChange={(event) => setExpiryFilter(event.target.value as ExpiryFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All expiry windows</option>
             <option value="7">Expiring in 7 days</option>
             <option value="30">Expiring in 30 days</option>
             <option value="expired">Already expired</option>
           </select>
           {filtersActive && (
-            <button type="button" onClick={clearFilters} className="h-10 whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+            <button type="button" onClick={clearFilters} className="h-10 whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-brand-primary hover:bg-brand-panel">
               Clear filters
             </button>
           )}
@@ -420,7 +420,7 @@ export default function AdminLeasesPage() {
               value={minRent}
               onChange={(event) => setMinRent(event.target.value)}
               placeholder="Min KES"
-              className="h-10 w-36 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-[#10B981] focus:bg-white"
+              className="h-10 w-36 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-brand-primary focus:bg-white"
             />
             <input
               type="number"
@@ -428,7 +428,7 @@ export default function AdminLeasesPage() {
               value={maxRent}
               onChange={(event) => setMaxRent(event.target.value)}
               placeholder="Max KES"
-              className="h-10 w-36 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-[#10B981] focus:bg-white"
+              className="h-10 w-36 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-brand-primary focus:bg-white"
             />
           </div>
         )}
@@ -469,12 +469,12 @@ export default function AdminLeasesPage() {
                           {rows.length === 0 ? 'No leases recorded yet' : 'No leases match your filters'}
                         </p>
                         {rows.length === 0 && supportsCreateLease ? (
-                          <Button type="button" onClick={() => setModal({ mode: 'create' })} className="mt-4 rounded-xl bg-[#10B981] hover:bg-emerald-600">
+                          <Button type="button" onClick={() => setModal({ mode: 'create' })} className="mt-4 rounded-xl bg-brand-primary hover:bg-brand-primary-hover">
                             <FilePlus2 className="h-4 w-4" />
                             Create Lease
                           </Button>
                         ) : rows.length > 0 ? (
-                          <button type="button" onClick={clearFilters} className="mt-3 text-sm font-semibold text-emerald-700 hover:underline">
+                          <button type="button" onClick={clearFilters} className="mt-3 text-sm font-semibold text-brand-primary hover:underline">
                             Clear Filters
                           </button>
                         ) : null}
@@ -493,7 +493,7 @@ export default function AdminLeasesPage() {
                     >
                       <td className="px-4 py-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#10B981] text-xs font-bold text-white">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white">
                             {getInitials(row.tenantName)}
                           </span>
                           <div className="min-w-0">
@@ -522,7 +522,7 @@ export default function AdminLeasesPage() {
                               event.stopPropagation();
                               setSelectedLease(row);
                             }}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700"
+                            className="rounded-lg p-2 text-slate-400 hover:bg-brand-panel hover:text-brand-primary"
                             aria-label={`View lease ${row.reference}`}
                             title="View"
                           >

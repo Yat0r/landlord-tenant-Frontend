@@ -411,7 +411,7 @@ function PropertyToolbar({
 }) {
   return (
     <div className="space-y-4">
-      <section className="rounded-lg bg-[linear-gradient(135deg,#0f172a_0%,#006948_62%,#10b981_100%)] p-5 text-white shadow-[0_18px_46px_rgba(15,118,110,0.22)]">
+      <section className="rounded-lg bg-[linear-gradient(135deg,#0f172a_0%,#0B7CC1_62%,#0B7CC1_100%)] p-5 text-white shadow-[0_18px_46px_rgba(15,118,110,0.22)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Properties</h1>
@@ -448,7 +448,7 @@ function PropertyToolbar({
                 value={search}
                 onChange={(event) => onSearchChange(event.target.value)}
                 placeholder="Search property / location / unit number / tenant"
-                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#006948] focus:bg-white"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-brand-primary focus:bg-white"
               />
             </label>
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -469,7 +469,7 @@ function PropertyToolbar({
                 className={clsx(
                   'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                   propertyFilter === filter.value
-                    ? 'border-[#006948] bg-[#006948] text-white'
+                    ? 'border-brand-primary bg-brand-primary text-white'
                     : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
                 )}
               >
@@ -504,7 +504,7 @@ function PropertyToolbar({
 function StatChip({ label, value, icon: Icon }: { label: string; value: ReactNode; icon: LucideIcon }) {
   return (
     <div className="flex min-w-[150px] items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#006948] shadow-sm">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-brand-primary shadow-sm">
         <Icon size={15} />
       </span>
       <div className="min-w-0">
@@ -611,7 +611,7 @@ function PropertyUnitsTable({
                         event.stopPropagation();
                         onTenantClick(unit.currentTenant as TenantRecord);
                       }}
-                      className="font-semibold text-[#006948] hover:underline"
+                      className="font-semibold text-brand-primary hover:underline"
                     >
                       {unit.currentTenant.name}
                     </button>
@@ -657,7 +657,7 @@ function PropertyCard({
       <div className="border-b border-slate-100 px-4 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-sm font-bold text-white">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#0B7CC1_100%)] text-sm font-bold text-white">
               {initials(property.name)}
             </span>
             <div className="min-w-0">
@@ -763,7 +763,7 @@ function UnitTenantsDrawer({
                 onClick={() => onTabChange(value as UnitDrawerTab)}
                 className={clsx(
                   'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
-                  activeTab === value ? 'bg-[#006948] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  activeTab === value ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 )}
               >
                 {label}
@@ -781,7 +781,7 @@ function UnitTenantsDrawer({
                   onClick={() => onTenantClick(currentTenant, { property, unit, lease: currentLease })}
                   className="flex items-center gap-3 text-left"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-xs font-bold text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#0B7CC1_100%)] text-xs font-bold text-white">
                     {initials(currentTenant.name)}
                   </span>
                   <span>
@@ -930,7 +930,7 @@ function TenantDetailsDrawer({
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-sm font-bold text-white">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#0B7CC1_100%)] text-sm font-bold text-white">
               {initials(tenant.name)}
             </span>
             <div className="min-w-0">

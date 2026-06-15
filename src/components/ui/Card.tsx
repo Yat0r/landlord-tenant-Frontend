@@ -9,7 +9,7 @@ export function Card({ padded = true, className, children, ...props }: CardProps
   return (
     <div
       className={clsx(
-        'rounded-lg border border-gray-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/10',
+        'rounded-lg border border-brand-border bg-brand-card shadow-sm shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/10',
         padded && 'p-6',
         className
       )}
@@ -30,7 +30,7 @@ export function CardHeader({ className, children, ...props }: HTMLAttributes<HTM
 
 export function CardTitle({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={clsx('text-lg font-semibold text-gray-900 dark:text-slate-100', className)} {...props}>
+    <h3 className={clsx('text-lg font-semibold text-brand-text dark:text-slate-100', className)} {...props}>
       {children}
     </h3>
   );

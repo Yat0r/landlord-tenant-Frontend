@@ -31,8 +31,8 @@ const badgeClass: Record<BadgeVariant, string> = {
   danger: 'border-red-100 bg-red-50 text-red-700',
   info: 'border-blue-100 bg-blue-50 text-blue-700',
   neutral: 'border-slate-200 bg-slate-100 text-slate-600',
-  purple: 'border-purple-100 bg-purple-50 text-purple-700',
-  indigo: 'border-indigo-100 bg-indigo-50 text-indigo-700',
+  purple: 'border-brand-info-border bg-brand-info text-brand-primary-dark',
+  indigo: 'border-brand-info-border bg-brand-info text-brand-primary-dark',
 };
 
 function Badge({ variant, children }: { variant: BadgeVariant; children: ReactNode }) {
@@ -116,6 +116,7 @@ export default function LandlordsPage() {
   const pageCount = landlords.data ? Math.max(1, Math.ceil(totalCount / PAGE_SIZE)) : undefined;
   const showingStart = landlords.data && totalCount > 0 ? (page - 1) * PAGE_SIZE + 1 : 0;
   const showingEnd = landlords.data ? Math.min(page * PAGE_SIZE, totalCount) : 0;
+  const items = landlords.data?.items ?? [];
 
   return (
     <div className="flex-1 overflow-y-auto py-5 px-5 space-y-5">
@@ -129,7 +130,7 @@ export default function LandlordsPage() {
         <button
           type="button"
           onClick={() => navigate('/admin/landlords/new')}
-          className="inline-flex items-center gap-2 bg-[#006948] hover:bg-[#005238] text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-colors"
         >
           <UserPlus size={15} /> Add Landlord
         </button>
@@ -137,7 +138,7 @@ export default function LandlordsPage() {
 
       {successMessage && (
         <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3 text-[13px] text-emerald-700 font-medium">
-          <CheckCircle2 size={15} className="flex-shrink-0 text-emerald-500" />
+          <CheckCircle2 size={15} className="flex-shrink-0 text-brand-primary" />
           {successMessage}
         </div>
       )}
@@ -153,7 +154,7 @@ export default function LandlordsPage() {
               setPage(1);
             }}
             placeholder="Search by name or email..."
-            className="w-full bg-white border border-slate-100 rounded-xl pl-9 pr-4 py-2 text-[13px] text-slate-600 placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-[#006948]/20 shadow-sm"
+            className="w-full bg-white border border-slate-100 rounded-xl pl-9 pr-4 py-2 text-[13px] text-slate-600 placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-brand-primary/20 shadow-sm"
           />
         </div>
 
@@ -171,7 +172,7 @@ export default function LandlordsPage() {
             }}
             className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
               linkedFilter === chip.value
-                ? 'bg-[#006948] text-white border-[#006948]'
+                ? 'bg-brand-primary text-white border-brand-primary'
                 : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
             }`}
           >
@@ -185,8 +186,8 @@ export default function LandlordsPage() {
           label="Total Landlords"
           value={totalQuery.data?.totalCount}
           icon={<UserCheck size={16} />}
-          bg="bg-violet-50"
-          color="text-violet-600"
+          bg="bg-brand-info"
+          color="text-brand-primary"
         />
         <MiniStatCard
           label="Linked to Keycloak"
@@ -253,7 +254,7 @@ export default function LandlordsPage() {
                 </tr>
               )}
 
-              {!landlords.isPending && !landlords.isError && landlords.data.items.length === 0 && (
+              {!landlords.isPending && !landlords.isError && (!landlords.data?.items || landlords.data.items.length === 0) && (
                 <tr>
                   <td colSpan={8} className="py-10 px-5 text-center text-sm text-slate-400">
                     {debouncedSearch || linkedFilter !== undefined
@@ -263,14 +264,14 @@ export default function LandlordsPage() {
                 </tr>
               )}
 
-              {landlords.data?.items.map((landlord) => (
+              {items.map((landlord) => (
                 <tr
                   key={landlord.id}
                   className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
                 >
                   <td className="py-3 px-5 whitespace-nowrap">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                         {landlord.name
                           .split(' ')
                           .map((namePart) => namePart[0])
@@ -328,7 +329,7 @@ export default function LandlordsPage() {
                     <button
                       type="button"
                       onClick={() => navigate(`/admin/landlords/${landlord.id}`)}
-                      className="text-[11px] text-[#006948] font-semibold hover:underline flex items-center gap-1"
+                      className="text-[11px] text-brand-primary font-semibold hover:underline flex items-center gap-1"
                     >
                       View <ChevronRight size={11} />
                     </button>

@@ -77,7 +77,7 @@ export function PaymentAllocationModal({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSaving} className="rounded-xl bg-[#10B981] hover:bg-emerald-600">
+            <Button type="submit" isLoading={isSaving} className="rounded-xl bg-brand-primary hover:bg-brand-primary-hover">
               <GitBranchPlus className="h-4 w-4" />
               Allocate
             </Button>

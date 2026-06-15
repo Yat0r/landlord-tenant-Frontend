@@ -146,7 +146,7 @@ export function PaymentDetailsDrawer({
           {activeTab === 'tenantLease' && (
             <Section title="Tenant & Lease">
               <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-sm font-bold text-white">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
                   {getInitials(row.tenantName)}
                 </span>
                 <div className="min-w-0">
@@ -167,7 +167,7 @@ export function PaymentDetailsDrawer({
               {row.tenant && (
                 <Link
                   to={`${ROUTES.ADMIN_TENANTS}?tenantId=${encodeURIComponent(row.tenant.id)}`}
-                  className="mt-4 inline-flex text-sm font-semibold text-emerald-700 hover:underline"
+                  className="mt-4 inline-flex text-sm font-semibold text-brand-primary hover:underline"
                 >
                   Open tenant details
                 </Link>

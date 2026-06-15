@@ -79,7 +79,7 @@ export function PaymentActionModal({
               type="button"
               isLoading={isSaving}
               onClick={onSubmit}
-              className={action === 'refund' ? 'rounded-xl bg-[#F43F5E] hover:bg-rose-600' : 'rounded-xl bg-[#10B981] hover:bg-emerald-600'}
+              className={action === 'refund' ? 'rounded-xl bg-brand-danger hover:bg-brand-danger-hover' : 'rounded-xl bg-brand-primary hover:bg-brand-primary-hover'}
             >
               <Icon className="h-4 w-4" />
               {copy.action}

@@ -300,7 +300,7 @@ export default function AdminTenantsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={() => setModal({ mode: 'add' })} className="rounded-xl bg-[#10B981] hover:bg-emerald-600">
+          <Button type="button" onClick={() => setModal({ mode: 'add' })} className="rounded-xl bg-brand-primary hover:bg-brand-primary-hover">
             <UserPlus className="h-4 w-4" />
             Add Tenant
           </Button>
@@ -334,15 +334,15 @@ export default function AdminTenantsPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name, email, phone, ID, property, unit"
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#10B981] focus:bg-white"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-brand-primary focus:bg-white"
             />
           </label>
-          <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value as AccountFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value as AccountFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All accounts</option>
             <option value="linked">Linked</option>
             <option value="unlinked">Unlinked</option>
           </select>
-          <select value={leaseFilter} onChange={(event) => setLeaseFilter(event.target.value as LeaseFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={leaseFilter} onChange={(event) => setLeaseFilter(event.target.value as LeaseFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All leases</option>
             <option value="active">Active</option>
             <option value="expired">Expired</option>
@@ -350,13 +350,13 @@ export default function AdminTenantsPage() {
             <option value="pending_renewal">Pending Renewal</option>
           </select>
           {canFilterByBalance && (
-            <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value as PaymentFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+            <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value as PaymentFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
               <option value="all">All payments</option>
               <option value="balance_due">Balance Due</option>
               <option value="cleared">Cleared</option>
             </select>
           )}
-          <select value={propertyFilter} onChange={(event) => setPropertyFilter(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={propertyFilter} onChange={(event) => setPropertyFilter(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All properties</option>
             {data.properties.map((property) => (
               <option key={property.id} value={property.id}>
@@ -364,13 +364,13 @@ export default function AdminTenantsPage() {
               </option>
             ))}
           </select>
-          <select value={maintenanceFilter} onChange={(event) => setMaintenanceFilter(event.target.value as MaintenanceFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={maintenanceFilter} onChange={(event) => setMaintenanceFilter(event.target.value as MaintenanceFilter)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All maintenance</option>
             <option value="open">Has open request</option>
             <option value="none">No open request</option>
           </select>
           {filtersActive && (
-            <button type="button" onClick={clearFilters} className="h-10 whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+            <button type="button" onClick={clearFilters} className="h-10 whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-brand-primary hover:bg-brand-panel">
               Clear filters
             </button>
           )}
@@ -412,12 +412,12 @@ export default function AdminTenantsPage() {
                           {rows.length === 0 ? 'No tenants yet' : 'No tenants match your filters'}
                         </p>
                         {rows.length === 0 ? (
-                          <Button type="button" onClick={() => setModal({ mode: 'add' })} className="mt-4 rounded-xl bg-[#10B981] hover:bg-emerald-600">
+                          <Button type="button" onClick={() => setModal({ mode: 'add' })} className="mt-4 rounded-xl bg-brand-primary hover:bg-brand-primary-hover">
                             <UserPlus className="h-4 w-4" />
                             Add Tenant
                           </Button>
                         ) : (
-                          <button type="button" onClick={clearFilters} className="mt-3 text-sm font-semibold text-emerald-700 hover:underline">
+                          <button type="button" onClick={clearFilters} className="mt-3 text-sm font-semibold text-brand-primary hover:underline">
                             Clear Filters
                           </button>
                         )}
@@ -436,7 +436,7 @@ export default function AdminTenantsPage() {
                     >
                       <td className="px-4 py-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#10B981] text-xs font-bold text-white">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white">
                             {getInitials(row.fullName)}
                           </span>
                           <div className="min-w-0">
@@ -474,7 +474,7 @@ export default function AdminTenantsPage() {
                               event.stopPropagation();
                               setSelectedTenant(row);
                             }}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700"
+                            className="rounded-lg p-2 text-slate-400 hover:bg-brand-panel hover:text-brand-primary"
                             aria-label={`View ${row.fullName}`}
                             title="View"
                           >

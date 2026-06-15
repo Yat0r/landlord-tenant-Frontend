@@ -2,6 +2,26 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-brand-primary: #0B7CC1;
+  --color-brand-primary-hover: #0869A8;
+  --color-brand-primary-dark: #075985;
+  --color-brand-soft: #EAF2FF;
+  --color-brand-panel: #F3F8FF;
+  --color-brand-info: #DFF3FF;
+  --color-brand-info-border: #A9DDF7;
+  --color-brand-text: #050816;
+  --color-brand-muted: #475569;
+  --color-brand-border: #D6E0EA;
+  --color-brand-page: #F8FAFC;
+  --color-brand-card: #FFFFFF;
+  --color-brand-success: #10B981;
+  --color-brand-warning: #F59E0B;
+  --color-brand-danger: #EF4444;
+  --color-brand-danger-hover: #DC2626;
+  --color-brand-sidebar: #07111F;
+}
+
 html,
 body,
 #root {

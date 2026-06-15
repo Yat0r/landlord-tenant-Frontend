@@ -12,15 +12,15 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#006948] text-white hover:bg-[#00573d] focus-visible:ring-[#006948] disabled:bg-emerald-300 dark:disabled:bg-emerald-900',
+    'bg-brand-primary text-white hover:bg-brand-primary-hover focus-visible:ring-brand-primary disabled:bg-brand-info-border dark:disabled:bg-brand-primary-dark',
   secondary:
-    'bg-gray-100 text-gray-800 hover:bg-gray-200 focus-visible:ring-gray-400 disabled:bg-gray-50 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:disabled:bg-slate-900',
+    'border border-brand-border bg-white text-slate-900 hover:bg-brand-panel focus-visible:ring-brand-primary disabled:bg-brand-panel disabled:text-brand-muted dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:disabled:bg-slate-900',
   ghost:
-    'bg-transparent text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-400 dark:text-slate-200 dark:hover:bg-slate-800',
+    'bg-transparent text-brand-muted hover:bg-brand-panel hover:text-brand-text focus-visible:ring-brand-primary dark:text-slate-200 dark:hover:bg-slate-800',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500 disabled:bg-red-300 dark:disabled:bg-red-950',
+    'bg-brand-danger text-white hover:bg-brand-danger-hover focus-visible:ring-brand-danger disabled:bg-red-300 dark:disabled:bg-red-950',
   outline:
-    'border border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
+    'border border-brand-border bg-white text-slate-900 hover:bg-brand-panel focus-visible:ring-brand-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

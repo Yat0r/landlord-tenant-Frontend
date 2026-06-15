@@ -86,7 +86,7 @@ function MetricCard({
     blue: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300',
     emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300',
     amber: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300',
-    violet: 'bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300',
+    violet: 'bg-brand-info text-brand-primary dark:bg-blue-950/40 dark:text-blue-300',
     rose: 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300',
     slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
   };
@@ -367,7 +367,7 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
-              <Activity size={14} className="text-[#006948]" />
+              <Activity size={14} className="text-brand-primary" />
               <span className="font-mono">Static data mode</span>
             </div>
           </section>
@@ -524,7 +524,7 @@ export default function AdminDashboard() {
                   <HousePlus size={14} />
                   Add Landlord
                 </span>
-                <span className="text-xs uppercase tracking-wider text-[#006948] dark:text-emerald-300">Open</span>
+                <span className="text-xs uppercase tracking-wider text-brand-primary dark:text-emerald-300">Open</span>
               </NavLink>
               {[
                 ['Add Tenant', 'Coming soon'],

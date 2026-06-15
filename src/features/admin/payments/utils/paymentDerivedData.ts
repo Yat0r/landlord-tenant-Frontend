@@ -148,7 +148,7 @@ export function getPaymentStatusColor(status?: string | null) {
   if (normalized === 'confirmed') return 'border-emerald-100 bg-emerald-50 text-emerald-700';
   if (normalized === 'pending') return 'border-amber-100 bg-amber-50 text-amber-700';
   if (normalized === 'failed') return 'border-rose-100 bg-rose-50 text-rose-700';
-  if (normalized === 'refunded') return 'border-purple-100 bg-purple-50 text-purple-700';
+  if (normalized === 'refunded') return 'border-brand-info-border bg-brand-info text-brand-primary-dark';
   return 'border-slate-200 bg-slate-100 text-slate-600';
 }
 

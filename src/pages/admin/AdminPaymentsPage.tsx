@@ -271,7 +271,7 @@ export default function AdminPaymentsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={() => setModal({ type: 'record' })} className="rounded-2xl bg-[#10B981] shadow-sm hover:bg-emerald-600">
+          <Button type="button" onClick={() => setModal({ type: 'record' })} className="rounded-2xl bg-brand-primary shadow-sm hover:bg-brand-primary-hover">
             <CreditCard className="h-4 w-4" />
             Record Payment
           </Button>
@@ -292,7 +292,7 @@ export default function AdminPaymentsPage() {
         </div>
       </div>
 
-      <section className="mt-6 rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_32%),linear-gradient(135deg,#ffffff_0%,#f8fbff_52%,#f7f3ff_100%)] p-4 shadow-sm shadow-slate-200/70">
+      <section className="mt-6 rounded-[2rem] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(11,124,193,0.16),transparent_32%),linear-gradient(135deg,#ffffff_0%,#f8fbff_52%,#EAF2FF_100%)] p-4 shadow-sm shadow-slate-200/70">
         <div className="grid gap-4 xl:grid-cols-4">
           <MetricCard
             label="Total Confirmed"
@@ -320,7 +320,7 @@ export default function AdminPaymentsPage() {
             value={isLoading ? '—' : summary.refundedAmount === null ? 'Not available yet' : formatKesAmount(summary.refundedAmount)}
             detail={isLoading ? '—' : `${summary.refundedCount} payment${summary.refundedCount === 1 ? '' : 's'}`}
             icon={<ArrowDownToLine className="h-5 w-5" />}
-            className="bg-purple-50/70"
+            className="bg-brand-info/70"
           />
         </div>
       </section>
@@ -329,10 +329,10 @@ export default function AdminPaymentsPage() {
         <section className="overflow-hidden rounded-3xl border border-slate-100 bg-[#111827] p-5 text-white shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200">Collection Health</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-info">Collection Health</p>
               <h2 className="mt-2 text-xl font-bold">Payment intelligence</h2>
             </div>
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-emerald-200">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-brand-info">
               <Sparkles className="h-5 w-5" />
             </span>
           </div>
@@ -362,7 +362,7 @@ export default function AdminPaymentsPage() {
               <h2 className="font-semibold text-[#1E293B]">Payment status pipeline</h2>
               <p className="text-sm text-[#64748B]">Click a stage to filter the ledger.</p>
             </div>
-            <BadgeDollarSign className="h-5 w-5 text-emerald-500" />
+            <BadgeDollarSign className="h-5 w-5 text-brand-primary" />
           </div>
           <div className="grid gap-3 sm:grid-cols-5">
             {statusTabs.map((tab) => (
@@ -373,7 +373,7 @@ export default function AdminPaymentsPage() {
                 className={clsx(
                   'rounded-2xl border px-4 py-3 text-left transition-all',
                   filters.status === tab.value
-                    ? 'border-emerald-200 bg-emerald-50 shadow-sm'
+                    ? 'border-brand-info-border bg-brand-info shadow-sm'
                     : 'border-slate-100 bg-slate-50/60 hover:border-slate-200 hover:bg-white'
                 )}
               >
@@ -395,29 +395,29 @@ export default function AdminPaymentsPage() {
               value={filters.search}
               onChange={(event) => setFilter('search', event.target.value)}
               placeholder="Search tenant, phone, email, reference, lease, property, unit"
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#10B981] focus:bg-white"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-brand-primary focus:bg-white"
             />
           </label>
-          <select value={filters.status} onChange={(event) => setFilter('status', event.target.value as PaymentStatus)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={filters.status} onChange={(event) => setFilter('status', event.target.value as PaymentStatus)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             {statusTabs.map((tab) => <option key={tab.value} value={tab.value}>{tab.label}</option>)}
           </select>
-          <select value={filters.method} onChange={(event) => setFilter('method', event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={filters.method} onChange={(event) => setFilter('method', event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             {methods.map((method) => <option key={method} value={method}>{method === 'all' ? 'All methods' : method}</option>)}
           </select>
-          <select value={filters.propertyId} onChange={(event) => setFilter('propertyId', event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={filters.propertyId} onChange={(event) => setFilter('propertyId', event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All properties</option>
             {data.properties.map((property) => <option key={property.id} value={property.id}>{property.name}</option>)}
           </select>
-          <select value={filters.tenantId} onChange={(event) => setFilter('tenantId', event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]">
+          <select value={filters.tenantId} onChange={(event) => setFilter('tenantId', event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary">
             <option value="all">All tenants</option>
             {data.tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
           </select>
           <div className="flex gap-2">
-            <input type="date" value={filters.dateFrom} onChange={(event) => setFilter('dateFrom', event.target.value)} className="h-11 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]" />
-            <input type="date" value={filters.dateTo} onChange={(event) => setFilter('dateTo', event.target.value)} className="h-11 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-[#10B981]" />
+            <input type="date" value={filters.dateFrom} onChange={(event) => setFilter('dateFrom', event.target.value)} className="h-11 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary" />
+            <input type="date" value={filters.dateTo} onChange={(event) => setFilter('dateTo', event.target.value)} className="h-11 min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-brand-primary" />
           </div>
           {filtersActive && (
-            <button type="button" onClick={() => setFilters(defaultFilters)} className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+            <button type="button" onClick={() => setFilters(defaultFilters)} className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl px-3 text-sm font-semibold text-brand-primary hover:bg-brand-panel">
               <FilterX className="h-4 w-4" />
               Clear filters
             </button>
@@ -430,7 +430,7 @@ export default function AdminPaymentsPage() {
             value={filters.minAmount}
             onChange={(event) => setFilter('minAmount', event.target.value)}
             placeholder="Min amount"
-            className="h-11 w-40 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-[#10B981] focus:bg-white"
+            className="h-11 w-40 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-brand-primary focus:bg-white"
           />
           <input
             type="number"
@@ -438,7 +438,7 @@ export default function AdminPaymentsPage() {
             value={filters.maxAmount}
             onChange={(event) => setFilter('maxAmount', event.target.value)}
             placeholder="Max amount"
-            className="h-11 w-40 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-[#10B981] focus:bg-white"
+            className="h-11 w-40 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-brand-primary focus:bg-white"
           />
         </div>
       </section>
@@ -475,7 +475,7 @@ export default function AdminPaymentsPage() {
                       <Receipt className="mx-auto h-12 w-12 text-slate-300" />
                       <p className="mt-3 text-base font-semibold text-slate-800">{rows.length === 0 ? 'No payments found' : 'No payments match your filters'}</p>
                       {rows.length > 0 && (
-                        <button type="button" onClick={() => setFilters(defaultFilters)} className="mt-3 text-sm font-semibold text-emerald-700 hover:underline">
+                        <button type="button" onClick={() => setFilters(defaultFilters)} className="mt-3 text-sm font-semibold text-brand-primary hover:underline">
                           Clear filters
                         </button>
                       )}
@@ -504,7 +504,7 @@ export default function AdminPaymentsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-xs font-bold text-white">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white">
                             {getInitials(row.tenantName)}
                           </span>
                           <div className="min-w-0">
@@ -533,14 +533,14 @@ export default function AdminPaymentsPage() {
                               event.stopPropagation();
                               setSelectedPayment(row);
                             }}
-                            className="rounded-xl p-2 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700"
+                            className="rounded-xl p-2 text-slate-400 hover:bg-brand-panel hover:text-brand-primary"
                             aria-label={`View payment ${row.reference}`}
                             title="View"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           {supportsConfirm && normalizeStatus(row.status) === 'pending' && (
-                            <button type="button" onClick={(event) => { event.stopPropagation(); setModal({ type: 'confirm', payment: row }); }} className="rounded-xl p-2 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700" title="Confirm">
+                            <button type="button" onClick={(event) => { event.stopPropagation(); setModal({ type: 'confirm', payment: row }); }} className="rounded-xl p-2 text-slate-400 hover:bg-brand-panel hover:text-brand-primary" title="Confirm">
                               <CheckCircle2 className="h-4 w-4" />
                             </button>
                           )}

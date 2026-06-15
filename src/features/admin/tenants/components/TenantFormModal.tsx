@@ -197,7 +197,7 @@ export function TenantFormModal({
                 id="tenant-notes"
                 value={form.notes}
                 onChange={(event) => setField('notes', event.target.value)}
-                className="min-h-24 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-[#006948] focus:ring-2 focus:ring-[#006948]"
+                className="min-h-24 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary"
               />
             </div>
           )}
@@ -211,7 +211,7 @@ export function TenantFormModal({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSaving} className="rounded-xl bg-[#10B981] hover:bg-emerald-600">
+            <Button type="submit" isLoading={isSaving} className="rounded-xl bg-brand-primary hover:bg-brand-primary-hover">
               <UserPlus className="h-4 w-4" />
               {mode === 'add' ? 'Add Tenant' : 'Save Changes'}
             </Button>

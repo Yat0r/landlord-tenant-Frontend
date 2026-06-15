@@ -42,7 +42,7 @@ function getInitials(name: string, fallback: string): string {
 function BrandLogo() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 shadow-lg shadow-violet-500/25">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-primary shadow-lg shadow-brand-primary/25">
         <span className="text-lg font-bold text-white">LT</span>
       </div>
       <div className="min-w-0">
@@ -81,8 +81,8 @@ function TenantSidebar() {
                     clsx(
                       'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm shadow-violet-500/20'
-                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+                        ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/20'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
                     )
                   }
                 >
@@ -97,7 +97,7 @@ function TenantSidebar() {
       <div className="border-t border-slate-800/50 px-3 py-4">
         <button
           onClick={() => signOut()}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-slate-100"
         >
           <LogOut className="h-5 w-5 shrink-0" />
           Sign out
@@ -138,7 +138,7 @@ function TenantTopbar() {
         <input
           type="search"
           placeholder="Search my lease, payments..."
-          className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:bg-white"
+          className="h-10 w-full rounded-full border border-brand-border bg-brand-panel pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-brand-primary focus:bg-white"
         />
       </label>
 
@@ -147,7 +147,7 @@ function TenantTopbar() {
         aria-pressed={isDarkMode}
         aria-label="Toggle dark mode"
         onClick={() => setIsDarkMode((prev) => !prev)}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-border text-brand-muted hover:bg-brand-panel"
         title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -156,7 +156,7 @@ function TenantTopbar() {
       <button
         type="button"
         aria-label="Notifications"
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-border text-brand-muted hover:bg-brand-panel"
       >
         <Bell className="h-4 w-4" />
       </button>
@@ -167,9 +167,9 @@ function TenantTopbar() {
           aria-haspopup="menu"
           aria-expanded={isUserMenuOpen}
           onClick={() => setIsUserMenuOpen((open: boolean) => !open)}
-          className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1 pr-2 transition hover:bg-slate-100"
+          className="flex items-center gap-2 rounded-full border border-brand-border bg-brand-panel py-1 pl-1 pr-2 transition hover:bg-slate-100"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-purple-500 text-xs font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white">
             {initials}
           </span>
           <span className="hidden min-w-0 leading-tight text-left md:block">
@@ -202,7 +202,7 @@ function TenantTopbar() {
                 setIsUserMenuOpen(false);
                 void signOut();
               }}
-              className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-slate-50"
+              className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-brand-danger hover:bg-slate-50"
             >
               <LogOut className="h-4 w-4" />
               Sign out

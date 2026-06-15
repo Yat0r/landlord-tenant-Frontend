@@ -170,7 +170,7 @@ export function LeaseDetailsDrawer({
             row.tenant ? (
               <Section title="Tenant Details">
                 <div className="mb-4 flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#10B981] text-xs font-bold text-white">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white">
                     {getInitials(row.tenant.name)}
                   </span>
                   <div className="min-w-0">
@@ -186,7 +186,7 @@ export function LeaseDetailsDrawer({
                 </dl>
                 <Link
                   to={`${ROUTES.ADMIN_TENANTS}?tenantId=${encodeURIComponent(row.tenant.id)}`}
-                  className="mt-4 inline-flex text-sm font-semibold text-emerald-700 hover:underline"
+                  className="mt-4 inline-flex text-sm font-semibold text-brand-primary hover:underline"
                 >
                   Open tenant record
                 </Link>

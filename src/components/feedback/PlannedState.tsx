@@ -10,13 +10,13 @@ export function PlannedState({
   description = 'This section is planned and will be available in a future release.',
 }: PlannedStateProps) {
   return (
-    <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-      <Construction className="h-10 w-10 text-gray-400" />
+    <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-brand-border bg-brand-panel p-8 text-center">
+      <Construction className="h-10 w-10 text-brand-info-border" />
       <div>
         {feature && (
-          <p className="font-semibold text-gray-700">{feature} — Coming Soon</p>
+          <p className="font-semibold text-brand-text">{feature} — Coming Soon</p>
         )}
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
+        <p className="mt-1 text-sm text-brand-muted">{description}</p>
       </div>
     </div>
   );

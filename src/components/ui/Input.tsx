@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-gray-700 dark:text-slate-200">
+          <label htmlFor={inputId} className="text-sm font-medium text-brand-text dark:text-slate-200">
             {label}
           </label>
         )}
@@ -22,17 +22,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={clsx(
-            'w-full rounded-md border px-3 py-2 text-sm text-gray-900 shadow-sm',
-            'placeholder:text-gray-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500',
-            'focus:outline-none focus:ring-2 focus:ring-[#006948] focus:border-[#006948]',
-            'disabled:bg-gray-50 disabled:cursor-not-allowed dark:disabled:bg-slate-950',
-            error ? 'border-red-400 focus:ring-red-500 dark:border-red-500' : 'border-gray-300',
+            'w-full rounded-md border bg-white px-3 py-2 text-sm text-brand-text shadow-sm',
+            'placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500',
+            'focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary',
+            'disabled:cursor-not-allowed disabled:bg-brand-panel dark:disabled:bg-slate-950',
+            error ? 'border-red-400 focus:border-brand-danger focus:ring-brand-danger dark:border-red-500' : 'border-brand-border',
             className
           )}
           {...props}
         />
         {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
-        {hint && !error && <p className="text-xs text-gray-500 dark:text-slate-400">{hint}</p>}
+        {hint && !error && <p className="text-xs text-brand-muted dark:text-slate-400">{hint}</p>}
       </div>
     );
   }

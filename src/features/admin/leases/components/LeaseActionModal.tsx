@@ -95,7 +95,7 @@ export function LeaseActionModal({
             <Button
               type="submit"
               isLoading={isSaving}
-              className={isRenew ? 'rounded-xl bg-[#10B981] hover:bg-emerald-600' : 'rounded-xl bg-[#F43F5E] hover:bg-rose-600'}
+              className={isRenew ? 'rounded-xl bg-brand-primary hover:bg-brand-primary-hover' : 'rounded-xl bg-brand-danger hover:bg-brand-danger-hover'}
             >
               {isRenew ? <RefreshCw className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
               {isRenew ? 'Renew' : 'Terminate'}

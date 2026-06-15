@@ -257,10 +257,10 @@ export default function AccountProfilePage() {
         )}
 
         <Card className="overflow-hidden p-0">
-          <div className="border-b border-slate-100 bg-gradient-to-r from-emerald-50 via-white to-blue-50 p-6 dark:border-slate-800 dark:from-emerald-950/30 dark:via-slate-900 dark:to-blue-950/30">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-brand-panel via-white to-brand-soft p-6 dark:border-slate-800 dark:from-blue-950/30 dark:via-slate-900 dark:to-blue-950/30">
             <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#006948] to-[#2563eb] text-2xl font-bold text-white shadow-sm">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0B7CC1] to-[#2563eb] text-2xl font-bold text-white shadow-sm">
                   {getInitials(fullName, username)}
                 </div>
                 <div className="min-w-0">
@@ -368,7 +368,7 @@ export default function AccountProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <KeyRound className="h-5 w-5 text-[#006948]" />
+                  <KeyRound className="h-5 w-5 text-brand-primary" />
                   Keycloak Identity
                 </CardTitle>
               </CardHeader>

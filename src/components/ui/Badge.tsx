@@ -15,12 +15,12 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200',
-  success: 'bg-green-100 text-green-700 dark:bg-emerald-950 dark:text-emerald-300',
-  warning: 'bg-yellow-100 text-yellow-800 dark:bg-amber-950 dark:text-amber-300',
-  danger: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-  info: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  neutral: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+  default: 'border border-brand-border bg-brand-panel text-brand-muted dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200',
+  success: 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
+  warning: 'border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
+  danger: 'border border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300',
+  info: 'border border-brand-info-border bg-brand-info text-brand-primary-dark dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300',
+  neutral: 'border border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
 export function Badge({ variant = 'default', children, className }: BadgeProps) {

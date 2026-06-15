@@ -30,8 +30,8 @@ export function SidebarNavItem({ label, to, icon: Icon, isPlanned }: SidebarNavI
           clsx(
             'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
             isActive
-              ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-sm shadow-emerald-500/20'
-              : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+              ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/20'
+              : 'text-slate-300 hover:bg-white/10 hover:text-slate-100'
           )
         }
       >
@@ -47,10 +47,10 @@ export interface RoleBadgeProps {
 }
 
 const roleStyles: Record<string, string> = {
-  Admin: 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white',
-  Landlord: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
-  Tenant: 'bg-gradient-to-r from-violet-500 to-purple-500 text-white',
-  PropertyManager: 'bg-gradient-to-r from-sky-500 to-blue-500 text-white',
+  Admin: 'bg-brand-primary text-white',
+  Landlord: 'bg-brand-primary text-white',
+  Tenant: 'bg-brand-primary text-white',
+  PropertyManager: 'bg-brand-primary text-white',
 };
 
 export function RoleBadge({ role }: RoleBadgeProps) {

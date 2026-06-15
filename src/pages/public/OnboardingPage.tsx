@@ -156,14 +156,14 @@ function LandingNavbar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071426]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#07111F]/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={() => scrollToSection('hero')}
-          className="flex min-w-0 items-center gap-3 rounded-full text-left focus:outline-none focus:ring-2 focus:ring-emerald-300"
+          className="flex min-w-0 items-center gap-3 rounded-full text-left focus:outline-none focus:ring-2 focus:ring-brand-info-border"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0bbf7d_0%,#246bfe_100%)] shadow-[0_12px_34px_rgba(16,185,129,0.28)]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0B7CC1_0%,#075985_100%)] shadow-[0_12px_34px_rgba(11,124,193,0.28)]">
             <Building2 className="h-5 w-5 text-white" />
           </span>
           <span className="min-w-0">
@@ -178,7 +178,7 @@ function LandingNavbar({
               key={link.sectionId}
               type="button"
               onClick={() => scrollToSection(link.sectionId)}
-              className="rounded-full px-4 py-2 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              className="rounded-full px-4 py-2 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-info-border"
             >
               {link.label}
             </button>
@@ -187,7 +187,7 @@ function LandingNavbar({
 
         <Button
           onClick={isAuthenticated ? onDashboard : onSignIn}
-          className="rounded-full bg-white text-[#071426] hover:bg-emerald-50 focus-visible:ring-emerald-300"
+          className="rounded-full bg-white text-[#07111F] hover:bg-brand-panel focus-visible:ring-brand-info-border"
         >
           {isAuthenticated ? 'Dashboard' : 'Sign in'}
         </Button>
@@ -206,17 +206,17 @@ function HeroSection({
   onRequestAccess: () => void;
 }) {
   return (
-    <section id="hero" className="relative overflow-hidden bg-[#071426] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(16,185,129,0.25),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(37,99,235,0.26),transparent_34%),linear-gradient(180deg,#071426_0%,#0a1930_58%,#f8fafc_58%,#f8fafc_100%)]" />
+    <section id="hero" className="relative overflow-hidden bg-[#07111F] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(11,124,193,0.26),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(37,99,235,0.26),transparent_34%),linear-gradient(180deg,#07111F_0%,#0F172A_58%,#f8fafc_58%,#f8fafc_100%)]" />
       <div className="absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:36px_36px]" />
       <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pb-16 pt-16 sm:px-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:px-8 lg:pb-24 lg:pt-20">
         <div className="flex flex-col justify-center">
-          <Badge variant="info" className="mb-5 w-fit border border-emerald-300/20 bg-emerald-400/10 text-emerald-200">
+          <Badge variant="info" className="mb-5 w-fit border border-brand-info-border/30 bg-brand-primary/10 text-brand-info">
             PROPERTY OPERATIONS PLATFORM
           </Badge>
           <h1 className="max-w-4xl text-5xl font-bold leading-tight text-white sm:text-6xl lg:text-7xl">
             The command center for{' '}
-            <span className="text-transparent bg-clip-text bg-[linear-gradient(90deg,#38f2a6_0%,#8bd7ff_100%)]">
+            <span className="text-transparent bg-clip-text bg-[linear-gradient(90deg,#DFF3FF_0%,#A9DDF7_100%)]">
               every property, tenant, and payment.
             </span>
           </h1>
@@ -224,7 +224,7 @@ function HeroSection({
             LandlordTenant brings properties, units, tenants, leases, rent collection, maintenance, reminders, and reports into one secure operating system.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" onClick={onPrimaryCta} className="rounded-full bg-emerald-400 text-[#071426] hover:bg-emerald-300 focus-visible:ring-emerald-200 sm:min-w-52">
+            <Button size="lg" onClick={onPrimaryCta} className="rounded-full bg-brand-primary text-white hover:bg-brand-primary-hover focus-visible:ring-brand-info-border sm:min-w-52">
               {isAuthenticated ? 'Go to Dashboard' : 'Sign in securely'}
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -243,7 +243,7 @@ function HeroSection({
 function HeroPreview() {
   return (
     <div className="relative min-w-0">
-      <div className="absolute -left-8 top-8 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl" />
+      <div className="absolute -left-8 top-8 h-48 w-48 rounded-full bg-brand-primary/20 blur-3xl" />
       <div className="absolute -right-8 bottom-16 h-56 w-56 rounded-full bg-blue-500/20 blur-3xl" />
       <div className="relative rounded-[2rem] border border-white/15 bg-white/10 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
         <div className="rounded-[1.5rem] border border-white/10 bg-[#0b172a]/92 p-5">
@@ -252,7 +252,7 @@ function HeroPreview() {
               <p className="text-sm font-semibold text-white">Property operations command center</p>
               <p className="mt-1 text-xs text-slate-400">Static UI illustration, not live data.</p>
             </div>
-            <span className="w-fit rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+            <span className="w-fit rounded-full border border-brand-info-border/40 bg-brand-info/10 px-3 py-1 text-xs font-semibold text-brand-info">
               Portfolio view
             </span>
           </div>
@@ -278,12 +278,12 @@ function HeroPreview() {
           <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.06] p-4">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm font-semibold text-white">Rent collection</p>
-              <BarChart3 className="h-4 w-4 text-emerald-300" />
+              <BarChart3 className="h-4 w-4 text-brand-info-border" />
             </div>
             <div className="flex h-28 items-end gap-2">
               {[48, 70, 58, 86, 78, 96, 90].map((height, index) => (
                 <div key={height + index} className="flex flex-1 items-end rounded-full bg-white/10">
-                  <div className="w-full rounded-full bg-[linear-gradient(180deg,#38f2a6_0%,#246bfe_100%)]" style={{ height: `${height}%` }} />
+                  <div className="w-full rounded-full bg-[linear-gradient(180deg,#A9DDF7_0%,#0B7CC1_100%)]" style={{ height: `${height}%` }} />
                 </div>
               ))}
             </div>
@@ -291,20 +291,20 @@ function HeroPreview() {
         </div>
       </div>
 
-      <div className="absolute -bottom-7 left-4 right-4 rounded-3xl border border-white/20 bg-white/90 p-4 text-[#071426] shadow-2xl shadow-black/20 backdrop-blur-xl sm:left-auto sm:right-8 sm:w-72">
+      <div className="absolute -bottom-7 left-4 right-4 rounded-3xl border border-white/20 bg-white/90 p-4 text-[#07111F] shadow-2xl shadow-black/20 backdrop-blur-xl sm:left-auto sm:right-8 sm:w-72">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-bold">Tenant portal</p>
             <p className="mt-1 text-xs text-slate-500">Static UI illustration, not live data.</p>
           </div>
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-[#006948]">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-info text-brand-primary">
             <Users className="h-5 w-5" />
           </span>
         </div>
         <div className="mt-4 grid gap-2">
           {tenantPortalItems.map((item) => (
             <div key={item} className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
-              <CheckCircle2 className="h-4 w-4 text-[#006948]" />
+              <CheckCircle2 className="h-4 w-4 text-brand-primary" />
               {item}
             </div>
           ))}
@@ -317,7 +317,7 @@ function HeroPreview() {
 function ProofCard({ title, description, icon: Icon }: (typeof proofCards)[number]) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-[#006948]">
+      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-info text-brand-primary">
         <Icon className="h-6 w-6" />
       </div>
       <h3 className="text-lg font-bold text-slate-950">{title}</h3>
@@ -330,11 +330,11 @@ function ProblemSolutionCard({ before, after }: (typeof problemSolutions)[number
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="rounded-2xl bg-slate-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-500">Before</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-danger">Before</p>
         <p className="mt-2 text-sm font-semibold text-slate-800">{before}</p>
       </div>
-      <div className="mt-3 rounded-2xl bg-emerald-50 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#006948]">After</p>
+      <div className="mt-3 rounded-2xl bg-brand-info p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary">After</p>
         <p className="mt-2 text-sm font-semibold text-slate-900">{after}</p>
       </div>
     </div>
@@ -344,7 +344,7 @@ function ProblemSolutionCard({ before, after }: (typeof problemSolutions)[number
 function AudienceCard({ title, description, icon: Icon }: (typeof audiences)[number]) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur transition hover:bg-white/[0.1]">
-      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-300/10 text-emerald-200">
+      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-info/10 text-brand-info">
         <Icon className="h-6 w-6" />
       </div>
       <h3 className="text-lg font-bold text-white">{title}</h3>
@@ -355,7 +355,7 @@ function AudienceCard({ title, description, icon: Icon }: (typeof audiences)[num
 
 function CapabilityCard({ title, icon: Icon }: (typeof capabilities)[number]) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-info-border hover:shadow-md">
       <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
         <Icon className="h-5 w-5" />
       </div>
@@ -367,7 +367,7 @@ function CapabilityCard({ title, icon: Icon }: (typeof capabilities)[number]) {
 function TrustBadge({ label, icon: Icon }: (typeof trustBadges)[number]) {
   return (
     <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.06] px-4 py-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-300/10 text-emerald-200">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-info/10 text-brand-info">
         <Icon className="h-4 w-4" />
       </span>
       <p className="text-sm font-semibold text-slate-100">{label}</p>
@@ -422,7 +422,7 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#071426]">
+      <div className="flex min-h-screen items-center justify-center bg-[#07111F]">
         <Spinner size="lg" />
       </div>
     );
@@ -490,11 +490,11 @@ export default function OnboardingPage() {
         </div>
       </section>
 
-      <section id="about" className="scroll-mt-24 bg-[#071426] py-20 text-white">
-        <div className="absolute left-0 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+      <section id="about" className="scroll-mt-24 bg-[#07111F] py-20 text-white">
+        <div className="absolute left-0 h-72 w-72 rounded-full bg-brand-primary/10 blur-3xl" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">One platform</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-info">One platform</p>
             <h2 className="mt-3 text-4xl font-bold">One platform, different portals for each user.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -509,7 +509,7 @@ export default function OnboardingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#006948]">Core capabilities</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary">Core capabilities</p>
               <h2 className="mt-3 text-4xl font-bold text-slate-950">Built around the work property teams repeat every day.</h2>
             </div>
             <p className="max-w-lg text-sm leading-6 text-slate-600">
@@ -526,10 +526,10 @@ export default function OnboardingPage() {
 
       <section id="pricing" className="scroll-mt-24 bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-[2rem] border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#eefaf5_52%,#eef5ff_100%)] p-8 shadow-xl shadow-slate-200/70 lg:p-10">
+          <div className="rounded-[2rem] border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#F3F8FF_52%,#EAF2FF_100%)] p-8 shadow-xl shadow-slate-200/70 lg:p-10">
             <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#006948]">Access model</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary">Access model</p>
                 <h2 className="mt-3 text-4xl font-bold text-slate-950">Pricing and onboarding are administrator-led.</h2>
                 <p className="mt-4 text-sm leading-6 text-slate-600">
                   Account activation is controlled to protect property, tenant, lease, and payment records.
@@ -538,7 +538,7 @@ export default function OnboardingPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {['No self-service password signup', 'Role assignment through Keycloak', 'Administrator-controlled account activation', 'Request access before onboarding'].map((item) => (
                   <div key={item} className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
-                    <CheckCircle2 className="h-5 w-5 shrink-0 text-[#006948]" />
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-brand-primary" />
                     <p className="text-sm font-semibold text-slate-700">{item}</p>
                   </div>
                 ))}
@@ -548,10 +548,10 @@ export default function OnboardingPage() {
         </div>
       </section>
 
-      <section className="bg-[#071426] py-20 text-white">
+      <section className="bg-[#07111F] py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center gap-3">
-            <Sparkles className="h-6 w-6 text-emerald-300" />
+            <Sparkles className="h-6 w-6 text-brand-info-border" />
             <h2 className="text-3xl font-bold">Trust and security foundation</h2>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -564,7 +564,7 @@ export default function OnboardingPage() {
 
       <section className="bg-slate-50 py-20">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <KeyRound className="mx-auto h-10 w-10 text-[#006948]" />
+          <KeyRound className="mx-auto h-10 w-10 text-brand-primary" />
           <h2 className="mt-4 text-4xl font-bold text-slate-950">Ready to run property operations with clearer control?</h2>
           <p className="mt-4 text-sm leading-6 text-slate-600">
             Sign in through Keycloak, or request access if your administrator has not activated your account yet.
