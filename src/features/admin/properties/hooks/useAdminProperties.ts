@@ -9,6 +9,7 @@ import {
   fetchPayments,
   fetchProperties,
   fetchTenants,
+  fetchUnits,
   type CreatePropertyPayload,
 } from '@/api/modules/adminApi';
 import type {
@@ -22,6 +23,7 @@ import type {
   PagedResult,
   PropertyEntity,
   TenantEntity,
+  UnitEntity,
 } from '@/types/domain/entities';
 
 const queryOptions = {
@@ -42,6 +44,19 @@ export function useAdminProperties(pageSize = 100) {
     queryKey: ['admin', 'properties', 'list', pageSize],
     queryFn: () => fetchProperties({ pageSize }),
     ...queryOptions,
+  });
+}
+
+export function useAdminUnits(pageSize = 500) {
+  return useQuery({
+    queryKey: ['admin', 'units', 'list', pageSize],
+    queryFn: () => fetchUnits({ pageSize }),
+    ...queryOptions,
+    retry: (failureCount, error) => {
+      if (error instanceof AxiosError && error.response?.status === 404) return false;
+      if (error instanceof AxiosError && error.response && isNonRetryableStatus(error.response.status)) return false;
+      return failureCount < 2;
+    },
   });
 }
 
@@ -119,4 +134,5 @@ export type {
   PaymentStatus,
   PropertyEntity,
   TenantEntity,
+  UnitEntity,
 };

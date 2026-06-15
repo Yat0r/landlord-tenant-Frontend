@@ -8,6 +8,7 @@ export const ENDPOINTS = {
     LANDLORDS: '/api/landlords',
     TENANTS: '/api/tenants',
     PROPERTIES: '/api/properties',
+    UNITS: '/api/units',
     LEASES: '/api/leases',
     PAYMENTS: '/api/payments',
     MAINTENANCE_REQUESTS: '/api/maintenance-requests',

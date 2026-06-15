@@ -25,6 +25,21 @@ export interface PropertyEntity {
   updatedAt?: string;
 }
 
+export interface UnitEntity {
+  id: string;
+  propertyId: string;
+  unitNumber: string;
+  unitType?: string | null;
+  type?: string | null;
+  status?: string | null;
+  monthlyRent?: number | null;
+  depositAmount?: number | null;
+  tenantId?: string | null;
+  currentTenantId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface PaymentEntity {
   id: string;
   leaseId?: string;

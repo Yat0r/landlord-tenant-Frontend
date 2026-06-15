@@ -1,18 +1,19 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+﻿import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
   AlertTriangle,
   Building2,
   CalendarDays,
-  ChevronRight,
+  CheckCircle2,
   CreditCard,
   DoorOpen,
+  Download,
+  Eye,
   FileText,
+  FilterX,
   Home,
   HousePlus,
-  Mail,
   MapPin,
   MoreVertical,
-  Phone,
   RefreshCw,
   Search,
   User,
@@ -26,7 +27,6 @@ import { Badge, type BadgeVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { ErrorState } from '@/components/feedback/ErrorState';
-import { LoadingState } from '@/components/feedback/LoadingState';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -39,6 +39,7 @@ import {
   useAdminPayments,
   useAdminProperties,
   useAdminTenants,
+  useAdminUnits,
   useCreateProperty,
 } from '@/features/admin/properties/hooks/useAdminProperties';
 import type {
@@ -47,11 +48,15 @@ import type {
   PaymentEntity,
   PropertyEntity,
   TenantEntity,
+  UnitEntity,
 } from '@/types/domain/entities';
 
-type PropertyFilter = 'all' | 'active' | 'occupied' | 'available' | 'maintenance';
-type UnitTypeFilter = 'all' | 'bedsitter' | 'single-room' | 'one-bedroom' | 'two-bedroom' | 'shop' | 'office';
-type UnitDrawerTab = 'current' | 'tenants' | 'leases' | 'payments' | 'maintenance';
+type PropertyFilter = 'all' | 'available' | 'occupied' | 'maintenance' | 'inactive';
+type PropertyTypeFilter = 'all' | 'apartment' | 'house' | 'commercial' | 'mixed';
+type QuickFilter = 'all' | 'occupied' | 'vacant' | 'maintenance' | 'arrears';
+type PropertyCardTab = 'all' | 'occupied' | 'vacant' | 'maintenance' | 'arrears';
+type DetailsTab = 'overview' | 'units' | 'tenants' | 'leases' | 'payments' | 'maintenance' | 'reports';
+type UnitSource = 'property' | 'units-api' | 'lease' | 'payment' | 'maintenance';
 
 type ExtendedProperty = PropertyEntity & {
   propertyType?: string | null;
@@ -60,35 +65,7 @@ type ExtendedProperty = PropertyEntity & {
   units?: ApiUnit[];
 };
 
-type TenantRecord = TenantEntity & {
-  phone?: string | null;
-  nationalId?: string | null;
-};
-
-type LeaseRecord = LeaseEntity & {
-  unitId?: string | null;
-  unitNumber?: string | null;
-  propertyUnit?: string | null;
-  tenantName?: string | null;
-  balance?: number | null;
-  outstandingBalance?: number | null;
-};
-
-type PaymentRecord = PaymentEntity & {
-  propertyId?: string | null;
-  unitId?: string | null;
-  unitNumber?: string | null;
-  propertyUnit?: string | null;
-  balance?: number | null;
-  outstandingBalance?: number | null;
-};
-
-type MaintenanceRecord = MaintenanceRequestEntity & {
-  unitId?: string | null;
-  unitNumber?: string | null;
-};
-
-type ApiUnit = {
+type ApiUnit = Omit<UnitEntity, 'id' | 'propertyId' | 'unitNumber'> & {
   id?: string | null;
   propertyId?: string | null;
   unitNumber?: string | null;
@@ -104,6 +81,55 @@ type ApiUnit = {
   currentTenantId?: string | null;
 };
 
+type TenantRecord = TenantEntity & {
+  phone?: string | null;
+  phoneNumber?: string | null;
+  nationalId?: string | null;
+  idNumber?: string | null;
+  passportNumber?: string | null;
+  keycloakUserId?: string | null;
+  createdAt?: string | null;
+};
+
+type LeaseRecord = LeaseEntity & {
+  unitId?: string | null;
+  unitNumber?: string | null;
+  unitName?: string | null;
+  propertyUnit?: string | null;
+  tenantName?: string | null;
+  reference?: string | null;
+  leaseReference?: string | null;
+  rentAmount?: number | null;
+  deposit?: number | null;
+  depositAmount?: number | null;
+  balance?: number | null;
+  rentBalance?: number | null;
+  outstandingBalance?: number | null;
+  amountDue?: number | null;
+  balanceDue?: number | null;
+};
+
+type PaymentRecord = PaymentEntity & {
+  propertyId?: string | null;
+  unitId?: string | null;
+  unitNumber?: string | null;
+  balance?: number | null;
+  rentBalance?: number | null;
+  outstandingBalance?: number | null;
+  amountDue?: number | null;
+  balanceDue?: number | null;
+  reference?: string | null;
+  method?: string | null;
+  paymentMethod?: string | null;
+};
+
+type MaintenanceRecord = MaintenanceRequestEntity & {
+  unitId?: string | null;
+  unitNumber?: string | null;
+  updatedAt?: string | null;
+  lastUpdatedAt?: string | null;
+};
+
 interface UnitRow {
   id: string;
   unitNumber: string;
@@ -115,6 +141,7 @@ interface UnitRow {
   leases: LeaseRecord[];
   payments: PaymentRecord[];
   maintenance: MaintenanceRecord[];
+  source: UnitSource;
 }
 
 interface PropertyModel {
@@ -126,35 +153,60 @@ interface PropertyModel {
   maintenance: MaintenanceRecord[];
   landlordName?: string;
   availableUnits?: number;
-  monthlyExpectedRent?: number;
-  outstandingBalance?: number;
+  unitsApiSupported: boolean;
 }
 
-interface TenantContext {
-  property: PropertyModel;
-  unit?: UnitRow;
-  lease?: LeaseRecord;
+interface PropertyForm {
+  name: string;
+  address: string;
+  totalUnits: string;
+  monthlyRent: string;
+  landlordId: string;
+  photoUrl: string;
 }
-
 const propertyFilters: Array<{ label: string; value: PropertyFilter }> = [
-  { label: 'All Properties', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Occupied Units', value: 'occupied' },
-  { label: 'Available Units', value: 'available' },
+  { label: 'All', value: 'all' },
+  { label: 'Available', value: 'available' },
+  { label: 'Occupied', value: 'occupied' },
   { label: 'Maintenance', value: 'maintenance' },
+  { label: 'Inactive', value: 'inactive' },
 ];
 
-const unitTypeFilters: Array<{ label: string; value: UnitTypeFilter }> = [
+const propertyTypeFilters: Array<{ label: string; value: PropertyTypeFilter }> = [
+  { label: 'All', value: 'all' },
+  { label: 'Apartment', value: 'apartment' },
+  { label: 'House', value: 'house' },
+  { label: 'Commercial', value: 'commercial' },
+  { label: 'Mixed', value: 'mixed' },
+];
+
+const quickFilters: Array<{ label: string; value: QuickFilter; requiresArrears?: boolean }> = [
+  { label: 'All Properties', value: 'all' },
+  { label: 'Occupied Units', value: 'occupied' },
+  { label: 'Vacant Units', value: 'vacant' },
+  { label: 'Maintenance', value: 'maintenance' },
+  { label: 'Arrears', value: 'arrears', requiresArrears: true },
+];
+
+const cardTabs: Array<{ label: string; value: PropertyCardTab }> = [
   { label: 'All Units', value: 'all' },
-  { label: 'Bedsitters', value: 'bedsitter' },
-  { label: 'Single Rooms', value: 'single-room' },
-  { label: '1 Bedroom', value: 'one-bedroom' },
-  { label: '2 Bedroom', value: 'two-bedroom' },
-  { label: 'Shops', value: 'shop' },
-  { label: 'Offices', value: 'office' },
+  { label: 'Occupied', value: 'occupied' },
+  { label: 'Vacant', value: 'vacant' },
+  { label: 'Maintenance', value: 'maintenance' },
+  { label: 'Arrears', value: 'arrears' },
 ];
 
-const emptyForm = {
+const detailsTabs: Array<{ label: string; value: DetailsTab }> = [
+  { label: 'Overview', value: 'overview' },
+  { label: 'Units', value: 'units' },
+  { label: 'Tenants', value: 'tenants' },
+  { label: 'Leases', value: 'leases' },
+  { label: 'Payments', value: 'payments' },
+  { label: 'Maintenance', value: 'maintenance' },
+  { label: 'Reports', value: 'reports' },
+];
+
+const emptyForm: PropertyForm = {
   name: '',
   address: '',
   totalUnits: '',
@@ -168,31 +220,44 @@ function normalizeStatus(value?: string | null) {
 }
 
 function statusText(value?: string | null) {
-  if (!value) return 'Not available yet';
+  if (!value) return '—';
   return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function normalizeUnitType(value?: string | null): UnitTypeFilter | 'unknown' {
+function normalizePropertyType(value?: string | null) {
   const normalized = value?.toLowerCase().replace(/[_-]/g, ' ').trim() ?? '';
   if (!normalized) return 'unknown';
-  if (normalized.includes('bedsitter') || normalized.includes('bed sitter')) return 'bedsitter';
-  if (normalized.includes('single')) return 'single-room';
-  if (normalized.includes('one') || normalized.includes('1 bedroom') || normalized.includes('1 bed')) return 'one-bedroom';
-  if (normalized.includes('two') || normalized.includes('2 bedroom') || normalized.includes('2 bed')) return 'two-bedroom';
-  if (normalized.includes('shop')) return 'shop';
-  if (normalized.includes('office')) return 'office';
+  if (normalized.includes('apartment') || normalized.includes('flat')) return 'apartment';
+  if (normalized.includes('house') || normalized.includes('villa')) return 'house';
+  if (normalized.includes('commercial') || normalized.includes('shop') || normalized.includes('office') || normalized.includes('retail')) return 'commercial';
+  if (normalized.includes('mixed')) return 'mixed';
   return 'unknown';
 }
 
+function propertyTypeLabel(value?: string | null) {
+  const normalized = normalizePropertyType(value);
+  if (normalized === 'apartment') return 'Apartment';
+  if (normalized === 'house') return 'House';
+  if (normalized === 'commercial') return 'Commercial';
+  if (normalized === 'mixed') return 'Mixed';
+  return value || '—';
+}
+
+function normalizeUnitType(value?: string | null) {
+  const normalized = value?.toLowerCase().replace(/[_-]/g, ' ').trim() ?? '';
+  if (!normalized) return 'unknown';
+  if (normalized.includes('bedsitter') || normalized.includes('bed sitter')) return 'Bedsitter';
+  if (normalized.includes('single')) return 'Single Room';
+  if (normalized.includes('one') || normalized.includes('1 bedroom') || normalized.includes('1 bed')) return '1 Bedroom';
+  if (normalized.includes('two') || normalized.includes('2 bedroom') || normalized.includes('2 bed')) return '2 Bedroom';
+  if (normalized.includes('shop')) return 'Shop';
+  if (normalized.includes('office')) return 'Office';
+  if (normalized.includes('commercial')) return 'Commercial';
+  return value;
+}
+
 function unitTypeLabel(value?: string | null) {
-  const normalized = normalizeUnitType(value);
-  if (normalized === 'bedsitter') return 'Bedsitter';
-  if (normalized === 'single-room') return 'Single Room';
-  if (normalized === 'one-bedroom') return '1 Bedroom';
-  if (normalized === 'two-bedroom') return '2 Bedroom';
-  if (normalized === 'shop') return 'Shop';
-  if (normalized === 'office') return 'Office';
-  return value || 'Not available yet';
+  return normalizeUnitType(value) ?? '—';
 }
 
 function moneyValue(value?: number | null) {
@@ -200,17 +265,27 @@ function moneyValue(value?: number | null) {
   return value;
 }
 
-function initials(value?: string | null) {
-  if (!value) return 'PR';
-  return value.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+function initials(value?: string | null, fallback = 'LT') {
+  const source = value?.trim() || fallback;
+  const parts = source.split(/\s+/).filter(Boolean);
+  const valueFromParts = parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
+  return valueFromParts || fallback.slice(0, 2).toUpperCase();
+}
+
+function tenantContact(tenant?: TenantRecord) {
+  return tenant?.email || tenant?.phone || tenant?.phoneNumber || '—';
 }
 
 function unitNumberFromUnit(unit: ApiUnit) {
   return unit.unitNumber ?? unit.number ?? unit.roomNumber ?? unit.name ?? undefined;
 }
 
+function unitKeyFromUnit(unit: ApiUnit) {
+  return unit.id ?? unitNumberFromUnit(unit);
+}
+
 function unitKeyFromLease(lease: LeaseRecord) {
-  return lease.unitId ?? lease.unitNumber ?? lease.propertyUnit ?? undefined;
+  return lease.unitId ?? lease.unitNumber ?? lease.propertyUnit ?? lease.unitName ?? undefined;
 }
 
 function unitKeyFromPayment(payment: PaymentRecord) {
@@ -231,30 +306,114 @@ function isMaintenanceOpen(request: MaintenanceRecord) {
 }
 
 function getBalance(payments: PaymentRecord[], lease?: LeaseRecord) {
-  const leaseBalance = moneyValue(lease?.balance) ?? moneyValue(lease?.outstandingBalance);
+  const leaseBalance = moneyValue(lease?.balance) ?? moneyValue(lease?.rentBalance) ?? moneyValue(lease?.outstandingBalance) ?? moneyValue(lease?.amountDue) ?? moneyValue(lease?.balanceDue);
   if (leaseBalance !== undefined) return leaseBalance;
-  const paymentWithBalance = payments.find((payment) => moneyValue(payment.balance) !== undefined || moneyValue(payment.outstandingBalance) !== undefined);
-  return moneyValue(paymentWithBalance?.balance) ?? moneyValue(paymentWithBalance?.outstandingBalance);
+  const paymentWithBalance = payments.find((payment) => moneyValue(payment.balance) !== undefined || moneyValue(payment.rentBalance) !== undefined || moneyValue(payment.outstandingBalance) !== undefined || moneyValue(payment.amountDue) !== undefined || moneyValue(payment.balanceDue) !== undefined);
+  return moneyValue(paymentWithBalance?.balance) ?? moneyValue(paymentWithBalance?.rentBalance) ?? moneyValue(paymentWithBalance?.outstandingBalance) ?? moneyValue(paymentWithBalance?.amountDue) ?? moneyValue(paymentWithBalance?.balanceDue);
 }
 
 function getCurrentLease(leases: LeaseRecord[]) {
   return leases.find(isLeaseActive) ?? leases[0];
 }
+function deriveUnitStatus(unit: UnitRow) {
+  const normalized = normalizeStatus(unit.status);
+  if (normalized === 'maintenance' || unit.maintenance.some(isMaintenanceOpen)) return 'maintenance';
+  if (unit.currentLease && isLeaseActive(unit.currentLease)) return 'occupied';
+  if (normalized === 'available' || normalized === 'vacant') return normalized === 'available' ? 'available' : 'vacant';
+  if (unit.currentTenant) return 'occupied';
+  return unit.status ?? '—';
+}
 
+function isUnitOccupied(unit: UnitRow) {
+  const normalized = normalizeStatus(unit.status);
+  return normalized === 'occupied' || Boolean(unit.currentTenant) || Boolean(unit.currentLease && isLeaseActive(unit.currentLease));
+}
+
+function isUnitVacant(unit: UnitRow) {
+  const normalized = normalizeStatus(unit.status);
+  return normalized === 'available' || normalized === 'vacant' || (!unit.currentTenant && !unit.currentLease && !unit.maintenance.some(isMaintenanceOpen));
+}
+
+function isUnitMaintenance(unit: UnitRow) {
+  const normalized = normalizeStatus(unit.status);
+  return normalized === 'maintenance' || unit.maintenance.some(isMaintenanceOpen);
+}
+
+function unitArrears(unit: UnitRow) {
+  return getBalance(unit.payments, unit.currentLease);
+}
+
+function hasArrearsData(model: PropertyModel) {
+  return model.units.some((unit) => unitArrears(unit) !== undefined);
+}
+
+function hasUnitRowsSupport(model: PropertyModel) {
+  return model.unitsApiSupported || model.units.length > 0 || model.leases.some((lease) => Boolean(unitKeyFromLease(lease)));
+}
+
+function derivePropertyStatus(model: PropertyModel) {
+  const normalized = normalizeStatus(model.property.status);
+  if (normalized) return model.property.status;
+  if (typeof model.property.occupiedUnits === 'number' && model.property.occupiedUnits > 0) return 'occupied';
+  if (typeof model.property.totalUnits === 'number' && model.property.totalUnits > 0 && typeof model.property.occupiedUnits === 'number' && model.property.occupiedUnits === 0) return 'available';
+  if (model.units.some(isUnitOccupied)) return 'occupied';
+  if (model.units.some(isUnitVacant)) return 'available';
+  if (typeof model.property.totalUnits === 'number' && model.property.totalUnits === 0) return 'inactive';
+  return 'inactive';
+}
+
+function statusBadgeVariant(status?: string | null, fallback: BadgeVariant = 'neutral') {
+  const normalized = normalizeStatus(status);
+  if (normalized === 'active' || normalized === 'occupied' || normalized === 'confirmed') return 'success';
+  if (normalized === 'available' || normalized === 'open' || normalized === 'in_progress') return 'warning';
+  if (normalized === 'inactive' || normalized === 'terminated' || normalized === 'expired' || normalized === 'failed') return 'danger';
+  return fallback;
+}
+
+function mergeUnitRows(existing: UnitRow, incoming: Partial<UnitRow>): UnitRow {
+  return {
+    ...existing,
+    unitType: existing.unitType ?? incoming.unitType,
+    status: existing.status ?? incoming.status,
+    monthlyRent: existing.monthlyRent ?? incoming.monthlyRent,
+    currentTenant: existing.currentTenant ?? incoming.currentTenant,
+    currentLease: existing.currentLease ?? incoming.currentLease,
+    leases: existing.leases.length > 0 ? existing.leases : incoming.leases ?? [],
+    payments: existing.payments.length > 0 ? existing.payments : incoming.payments ?? [],
+    maintenance: existing.maintenance.length > 0 ? existing.maintenance : incoming.maintenance ?? [],
+    source: existing.source,
+  };
+}
+
+function finalizeUnitRow(unit: UnitRow, tenantById: Map<string, TenantRecord>): UnitRow {
+  const currentLease = getCurrentLease(unit.leases);
+  const currentTenant = unit.currentTenant ?? (currentLease ? tenantById.get(currentLease.tenantId) : undefined);
+  return {
+    ...unit,
+    currentLease,
+    currentTenant,
+    status: deriveUnitStatus({ ...unit, currentLease, currentTenant }),
+    monthlyRent: unit.monthlyRent ?? currentLease?.monthlyRent,
+  };
+}
 function buildPropertyModels({
   properties,
+  units,
   tenants,
   leases,
   payments,
   maintenance,
   landlords,
+  unitsApiSupported,
 }: {
   properties: ExtendedProperty[];
+  units: ApiUnit[];
   tenants: TenantRecord[];
   leases: LeaseRecord[];
   payments: PaymentRecord[];
   maintenance: MaintenanceRecord[];
   landlords: Array<{ id: string; name: string }>;
+  unitsApiSupported: boolean;
 }): PropertyModel[] {
   const tenantById = new Map(tenants.map((tenant) => [tenant.id, tenant]));
   const landlordById = new Map(landlords.map((landlord) => [landlord.id, landlord.name]));
@@ -271,8 +430,19 @@ function buildPropertyModels({
     const propertyLeases = leases.filter((lease) => lease.propertyId === property.id);
     const leaseIds = new Set(propertyLeases.map((lease) => lease.id));
     const propertyPayments = payments.filter((payment) => (payment.leaseId ? leaseIds.has(payment.leaseId) : payment.propertyId === property.id));
-    const propertyMaintenance = maintenance.filter((request) => request.propertyId === property.id);
-    const tenantIds = new Set(propertyLeases.map((lease) => lease.tenantId).filter(Boolean));
+    const propertyMaintenance = maintenance.filter((request) => request.propertyId === property.id || request.propertyName === property.name);
+    const tenantIds = new Set<string>();
+
+    propertyLeases.forEach((lease) => {
+      if (lease.tenantId) tenantIds.add(lease.tenantId);
+    });
+    propertyPayments.forEach((payment) => {
+      if (payment.tenantId) tenantIds.add(payment.tenantId);
+    });
+    propertyMaintenance.forEach((request) => {
+      if (request.tenantId) tenantIds.add(request.tenantId);
+    });
+
     const propertyTenants = Array.from(tenantIds)
       .map((tenantId) => tenantById.get(tenantId))
       .filter((tenant): tenant is TenantRecord => Boolean(tenant));
@@ -280,7 +450,7 @@ function buildPropertyModels({
 
     property.units?.forEach((unit) => {
       const unitNumber = unitNumberFromUnit(unit);
-      const id = unit.id ?? unitNumber;
+      const id = unitKeyFromUnit(unit);
       if (!id || !unitNumber) return;
       unitMap.set(id, {
         id,
@@ -292,141 +462,416 @@ function buildPropertyModels({
         leases: [],
         payments: [],
         maintenance: [],
+        source: 'property',
       });
+    });
+
+    units.filter((unit) => unit.propertyId === property.id).forEach((unit) => {
+      const unitNumber = unitNumberFromUnit(unit);
+      const id = unitKeyFromUnit(unit);
+      if (!id || !unitNumber) return;
+      const next: UnitRow = {
+        id,
+        unitNumber,
+        unitType: unit.unitType ?? unit.type,
+        status: unit.status,
+        monthlyRent: unit.monthlyRent,
+        currentTenant: unit.currentTenantId || unit.tenantId ? tenantById.get(unit.currentTenantId ?? unit.tenantId ?? '') : undefined,
+        leases: [],
+        payments: [],
+        maintenance: [],
+        source: 'units-api',
+      };
+      const existing = unitMap.get(id);
+      unitMap.set(id, existing ? mergeUnitRows(existing, next) : next);
     });
 
     propertyLeases.forEach((lease) => {
       const key = unitKeyFromLease(lease);
       if (!key) return;
-      const existing = unitMap.get(key);
       const paymentsForLease = paymentsByLeaseId.get(lease.id) ?? [];
-      const current: UnitRow = existing ?? {
+      const existing = unitMap.get(key);
+      const next: UnitRow = {
         id: key,
-        unitNumber: lease.unitNumber ?? lease.propertyUnit ?? key,
+        unitNumber: lease.unitNumber ?? lease.propertyUnit ?? lease.unitName ?? key,
         unitType: undefined,
-        status: isLeaseActive(lease) ? 'occupied' : undefined,
-        monthlyRent: lease.monthlyRent,
-        leases: [],
-        payments: [],
+        status: isLeaseActive(lease) ? 'occupied' : lease.status,
+        monthlyRent: lease.monthlyRent ?? lease.rentAmount,
+        currentTenant: tenantById.get(lease.tenantId),
+        currentLease: lease,
+        leases: [lease],
+        payments: paymentsForLease,
         maintenance: [],
+        source: 'lease',
       };
-
-      current.leases.push(lease);
-      current.payments.push(...paymentsForLease);
-      current.currentLease = getCurrentLease(current.leases);
-      current.currentTenant = current.currentLease ? tenantById.get(current.currentLease.tenantId) : current.currentTenant;
-      current.monthlyRent = current.monthlyRent ?? lease.monthlyRent;
-      current.status = current.status ?? (isLeaseActive(current.currentLease) ? 'occupied' : undefined);
-      unitMap.set(key, current);
+      if (existing) {
+        existing.leases.push(...existing.leases.some((item) => item.id === lease.id) ? [] : [lease]);
+        existing.payments.push(...paymentsForLease.filter((payment) => !existing.payments.some((item) => item.id === payment.id)));
+        unitMap.set(key, mergeUnitRows(existing, next));
+      } else {
+        unitMap.set(key, next);
+      }
     });
-
     propertyPayments.forEach((payment) => {
       const key = unitKeyFromPayment(payment);
       if (!key) return;
       const existing = unitMap.get(key);
-      if (!existing) return;
-      if (!existing.payments.some((item) => item.id === payment.id)) existing.payments.push(payment);
+      const next: UnitRow = {
+        id: key,
+        unitNumber: key,
+        unitType: undefined,
+        status: undefined,
+        monthlyRent: undefined,
+        currentTenant: payment.tenantId ? tenantById.get(payment.tenantId) : undefined,
+        leases: payment.leaseId ? propertyLeases.filter((lease) => lease.id === payment.leaseId) : [],
+        payments: [payment],
+        maintenance: [],
+        source: 'payment',
+      };
+      if (existing) {
+        if (!existing.payments.some((item) => item.id === payment.id)) existing.payments.push(payment);
+        unitMap.set(key, mergeUnitRows(existing, next));
+      } else {
+        unitMap.set(key, next);
+      }
     });
 
     propertyMaintenance.forEach((request) => {
       const key = unitKeyFromMaintenance(request);
       if (!key) return;
       const existing = unitMap.get(key);
-      if (!existing) return;
-      existing.maintenance.push(request);
+      const next: UnitRow = {
+        id: key,
+        unitNumber: key,
+        unitType: undefined,
+        status: isMaintenanceOpen(request) ? 'maintenance' : request.status,
+        monthlyRent: undefined,
+        currentTenant: request.tenantId ? tenantById.get(request.tenantId) : undefined,
+        leases: [],
+        payments: [],
+        maintenance: [request],
+        source: 'maintenance',
+      };
+      if (existing) {
+        if (!existing.maintenance.some((item) => item.id === request.id)) existing.maintenance.push(request);
+        unitMap.set(key, mergeUnitRows(existing, next));
+      } else {
+        unitMap.set(key, next);
+      }
     });
 
-    const units = Array.from(unitMap.values()).sort((a, b) => a.unitNumber.localeCompare(b.unitNumber));
-    const monthlyExpectedRent = units.length > 0 && units.every((unit) => moneyValue(unit.monthlyRent) !== undefined)
-      ? units.reduce((total, unit) => total + Number(unit.monthlyRent), 0)
-      : undefined;
-    const unitBalances = units.map((unit) => getBalance(unit.payments, unit.currentLease));
-    const outstandingBalance = unitBalances.length > 0 && unitBalances.every((value) => value !== undefined)
-      ? unitBalances.reduce((total, value) => total + Number(value), 0)
-      : undefined;
+    const unitsForProperty = Array.from(unitMap.values())
+      .map((unit) => finalizeUnitRow(unit, tenantById))
+      .sort((a, b) => a.unitNumber.localeCompare(b.unitNumber));
+    const availableUnits = typeof property.totalUnits === 'number' && typeof property.occupiedUnits === 'number'
+      ? Math.max(property.totalUnits - property.occupiedUnits, 0)
+      : unitsForProperty.filter(isUnitVacant).length || undefined;
 
     return {
       property,
-      units,
+      units: unitsForProperty,
       leases: propertyLeases,
       tenants: propertyTenants,
       payments: propertyPayments,
       maintenance: propertyMaintenance,
       landlordName: property.landlordId ? landlordById.get(property.landlordId) : undefined,
-      availableUnits: typeof property.totalUnits === 'number' && typeof property.occupiedUnits === 'number'
-        ? Math.max(property.totalUnits - property.occupiedUnits, 0)
-        : undefined,
-      monthlyExpectedRent,
-      outstandingBalance,
+      availableUnits,
+      unitsApiSupported,
     };
   });
 }
 
 function MoneyText({ value }: { value?: number | null }) {
   const safeValue = moneyValue(value);
-  return <>{safeValue === undefined ? 'Not available yet' : formatCurrency(safeValue)}</>;
+  return <>{safeValue === undefined ? '—' : formatCurrency(safeValue)}</>;
 }
 
 function DateText({ value }: { value?: string | null }) {
-  return <>{value ? formatDate(value) : 'Not available yet'}</>;
+  return <>{formatDate(value)}</>;
 }
 
 function StatusBadge({ status, variant }: { status?: string | null; variant?: BadgeVariant }) {
-  const normalized = normalizeStatus(status);
-  const badgeVariant = variant ?? (normalized === 'active' || normalized === 'occupied' || normalized === 'confirmed'
-    ? 'success'
-    : normalized === 'open' || normalized === 'in_progress' || normalized === 'available'
-      ? 'warning'
-      : 'neutral');
-
-  return <Badge variant={badgeVariant}>{statusText(status)}</Badge>;
+  return <Badge variant={variant ?? statusBadgeVariant(status)}>{statusText(status)}</Badge>;
 }
 
-function UnsupportedLabel({ children = 'Requires backend support' }: { children?: string }) {
+function UnsupportedState({ title = 'Requires backend support', description }: { title?: string; description?: string }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-      {children}
-    </span>
+    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center">
+      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm">
+        <AlertTriangle size={18} />
+      </div>
+      <p className="mt-3 text-sm font-semibold text-slate-800">{title}</p>
+      {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
+    </div>
+  );
+}
+
+
+function csvEscape(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function exportPropertiesCsv(models: PropertyModel[]) {
+  const headers = [
+    'Property ID',
+    'Property Name',
+    'Landlord',
+    'Address',
+    'Property Type',
+    'Status',
+    'Total Units',
+    'Occupied Units',
+    'Vacant Units',
+    'Active Leases',
+    'Tenants',
+    'Open Maintenance',
+    'Unit',
+    'Unit Type',
+    'Unit Status',
+    'Tenant',
+    'Lease Status',
+    'Monthly Rent',
+    'Arrears',
+  ];
+  const lines = models.flatMap((model) => {
+    const base = [
+      model.property.id,
+      model.property.name,
+      model.landlordName ?? '',
+      model.property.address,
+      propertyTypeLabel(model.property.type ?? model.property.propertyType),
+      statusText(derivePropertyStatus(model)),
+      typeof model.property.totalUnits === 'number' ? String(model.property.totalUnits) : '',
+      typeof model.property.occupiedUnits === 'number' ? String(model.property.occupiedUnits) : '',
+      typeof model.availableUnits === 'number' ? String(model.availableUnits) : '',
+      String(model.leases.filter(isLeaseActive).length),
+      String(model.tenants.length),
+      String(model.maintenance.filter(isMaintenanceOpen).length),
+    ].map(String);
+
+    if (model.units.length === 0) {
+      return [base.concat(Array(headers.length - base.length).fill('')).join(',')];
+    }
+
+    return model.units.map((unit) => {
+      const row = [
+        unit.unitNumber,
+        unitTypeLabel(unit.unitType),
+        statusText(unit.status),
+        unit.currentTenant?.name ?? '',
+        unit.currentLease?.status ?? '',
+        moneyValue(unit.monthlyRent) === undefined ? '' : String(unit.monthlyRent),
+        unitArrears(unit) === undefined ? '' : String(unitArrears(unit)),
+      ];
+      return base.concat(row).map(csvEscape).join(',');
+    });
+  });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const blob = new Blob([[headers.map(csvEscape).join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `landlordtenant-properties-${today}.csv`;
+  anchor.click();
+  window.URL.revokeObjectURL(url);
+}
+function matchesSearch(model: PropertyModel, term: string) {
+  if (!term) return true;
+  return [
+    model.property.name,
+    model.property.address,
+    model.property.id,
+    model.property.type,
+    model.property.propertyType,
+    model.landlordName,
+    ...model.units.map((unit) => unit.unitNumber),
+    ...model.units.map((unit) => unit.currentTenant?.name),
+    ...model.tenants.map((tenant) => tenant.name),
+    ...model.leases.map((lease) => lease.id),
+  ].filter(Boolean).join(' ').toLowerCase().includes(term);
+}
+
+function matchesPropertyFilter(model: PropertyModel, filter: PropertyFilter) {
+  const status = normalizeStatus(derivePropertyStatus(model));
+  if (filter === 'all') return true;
+  if (filter === 'available') return status === 'available' || Boolean(model.availableUnits && model.availableUnits > 0) || model.units.some(isUnitVacant);
+  if (filter === 'occupied') return status === 'occupied' || (typeof model.property.occupiedUnits === 'number' && model.property.occupiedUnits > 0) || model.units.some(isUnitOccupied);
+  if (filter === 'maintenance') return model.maintenance.some(isMaintenanceOpen) || model.units.some(isUnitMaintenance);
+  if (filter === 'inactive') return status === 'inactive' || (typeof model.property.totalUnits === 'number' && model.property.totalUnits === 0);
+  return true;
+}
+
+function matchesPropertyTypeFilter(model: PropertyModel, filter: PropertyTypeFilter) {
+  if (filter === 'all') return true;
+  return normalizePropertyType(model.property.type ?? model.property.propertyType) === filter;
+}
+
+function matchesQuickFilter(model: PropertyModel, filter: QuickFilter) {
+  if (filter === 'all') return true;
+  if (filter === 'occupied') return model.units.some(isUnitOccupied) || (typeof model.property.occupiedUnits === 'number' && model.property.occupiedUnits > 0);
+  if (filter === 'vacant') return Boolean(model.availableUnits && model.availableUnits > 0) || model.units.some(isUnitVacant);
+  if (filter === 'maintenance') return model.maintenance.some(isMaintenanceOpen) || model.units.some(isUnitMaintenance);
+  if (filter === 'arrears') return model.units.some((unit) => (unitArrears(unit) ?? 0) > 0);
+  return true;
+}
+
+function matchesCardTab(unit: UnitRow, tab: PropertyCardTab) {
+  if (tab === 'all') return true;
+  if (tab === 'occupied') return isUnitOccupied(unit);
+  if (tab === 'vacant') return isUnitVacant(unit);
+  if (tab === 'maintenance') return isUnitMaintenance(unit);
+  if (tab === 'arrears') return (unitArrears(unit) ?? 0) > 0;
+  return true;
+}
+
+function visibleCardTabs(model: PropertyModel) {
+  return cardTabs.filter((tab) => {
+    if (tab.value === 'all') return true;
+    if (tab.value === 'occupied') return model.units.some(isUnitOccupied);
+    if (tab.value === 'vacant') return Boolean(model.availableUnits && model.availableUnits > 0) || model.units.some(isUnitVacant);
+    if (tab.value === 'maintenance') return model.maintenance.some(isMaintenanceOpen) || model.units.some(isUnitMaintenance);
+    if (tab.value === 'arrears') return hasArrearsData(model) && model.units.some((unit) => (unitArrears(unit) ?? 0) > 0);
+    return true;
+  });
+}
+
+function countOpenMaintenance(model: PropertyModel) {
+  return model.maintenance.filter(isMaintenanceOpen).length;
+}
+
+function countOccupiedUnits(model: PropertyModel) {
+  if (typeof model.property.occupiedUnits === 'number') return model.property.occupiedUnits;
+  return model.units.filter(isUnitOccupied).length;
+}
+
+function countVacantUnits(model: PropertyModel) {
+  if (typeof model.availableUnits === 'number') return model.availableUnits;
+  return model.units.filter(isUnitVacant).length;
+}
+
+function countTotalUnits(model: PropertyModel) {
+  if (typeof model.property.totalUnits === 'number') return model.property.totalUnits;
+  if (model.units.length > 0) return model.units.length;
+  return undefined;
+}
+function PropertySkeletonList() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <article key={index} className="rounded-2xl border border-[#D6E0EA] bg-white p-5 shadow-sm">
+          <div className="flex animate-pulse items-start gap-4">
+            <div className="h-12 w-12 rounded-full bg-slate-200" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-5 w-1/3 rounded bg-slate-200" />
+              <div className="h-4 w-1/2 rounded bg-slate-200" />
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {Array.from({ length: 4 }).map((__, statIndex) => (
+                  <div key={statIndex} className="h-16 rounded-xl bg-slate-100" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function StatChip({ label, value, icon: Icon, tone }: { label: string; value: ReactNode; icon: LucideIcon; tone: string }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+          <p className="mt-1 truncate text-xl font-bold tracking-tight text-[#050816]">{value}</p>
+        </div>
+        <span className={clsx('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', tone)}>
+          <Icon size={17} />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function PropertyCardStats({ model }: { model: PropertyModel }) {
+  const stats = [
+    { label: 'Units', value: countTotalUnits(model) ?? '—', icon: DoorOpen, tone: 'bg-[#F3F8FF] text-[#0B7CC1]' },
+    { label: 'Occupied', value: countOccupiedUnits(model), icon: Users, tone: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Vacant', value: countVacantUnits(model) ?? '—', icon: Home, tone: 'bg-slate-50 text-slate-500' },
+    { label: 'Active Leases', value: model.leases.filter(isLeaseActive).length, icon: FileText, tone: 'bg-[#F3F8FF] text-[#0B7CC1]' },
+    { label: 'Tenants', value: model.tenants.length, icon: User, tone: 'bg-indigo-50 text-indigo-600' },
+    { label: 'Maintenance', value: countOpenMaintenance(model), icon: Wrench, tone: countOpenMaintenance(model) > 0 ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-500' },
+  ];
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {stats.map((stat) => (
+        <StatChip key={stat.label} {...stat} />
+      ))}
+    </div>
   );
 }
 
 function PropertyToolbar({
   search,
   propertyFilter,
-  unitTypeFilter,
+  propertyTypeFilter,
+  quickFilter,
   shownCount,
+  canFilterByArrears,
+  typeFilterHasNoBackendData,
   onSearchChange,
   onPropertyFilterChange,
-  onUnitTypeFilterChange,
+  onPropertyTypeFilterChange,
+  onQuickFilterChange,
   onRefresh,
   onAdd,
+  onExport,
+  onClear,
 }: {
   search: string;
   propertyFilter: PropertyFilter;
-  unitTypeFilter: UnitTypeFilter;
+  propertyTypeFilter: PropertyTypeFilter;
+  quickFilter: QuickFilter;
   shownCount: number;
+  canFilterByArrears: boolean;
+  typeFilterHasNoBackendData: boolean;
   onSearchChange: (value: string) => void;
   onPropertyFilterChange: (value: PropertyFilter) => void;
-  onUnitTypeFilterChange: (value: UnitTypeFilter) => void;
+  onPropertyTypeFilterChange: (value: PropertyTypeFilter) => void;
+  onQuickFilterChange: (value: QuickFilter) => void;
   onRefresh: () => void;
   onAdd: () => void;
+  onExport: () => void;
+  onClear: () => void;
 }) {
+  const filtersActive = Boolean(search.trim()) || propertyFilter !== 'all' || propertyTypeFilter !== 'all' || quickFilter !== 'all';
+
   return (
     <div className="space-y-4">
-      <section className="rounded-lg bg-[linear-gradient(135deg,#0f172a_0%,#006948_62%,#10b981_100%)] p-5 text-white shadow-[0_18px_46px_rgba(15,118,110,0.22)]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <section className="overflow-hidden rounded-3xl border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(11,124,193,0.18),transparent_34%),linear-gradient(135deg,#FFFFFF_0%,#F3F8FF_58%,#FFFFFF_100%)] p-5 shadow-sm">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Properties</h1>
-            <p className="mt-1 max-w-2xl text-sm text-emerald-50/85">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#D6E0EA] bg-white px-3 py-1 text-xs font-semibold text-[#0B7CC1] shadow-sm">
+              <Building2 size={14} />
+              Property operations
+            </div>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#050816]">Properties</h1>
+            <p className="mt-1 max-w-3xl text-sm text-[#475569]">
               Manage properties, units, tenants, leases, rent, and maintenance.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="secondary" size="sm" onClick={onRefresh} className="bg-white/15 text-white hover:bg-white/20">
+            <Button type="button" variant="secondary" size="sm" onClick={onRefresh} className="rounded-xl">
               <RefreshCw size={14} />
               Refresh
             </Button>
-            <Button type="button" size="sm" onClick={onAdd} className="bg-white text-[#006948] hover:bg-emerald-50">
+            <Button type="button" variant="secondary" size="sm" onClick={onExport} className="rounded-xl">
+              <Download size={14} />
+              Export CSV
+            </Button>
+            <Button type="button" size="sm" onClick={onAdd} className="rounded-xl bg-[#0B7CC1] text-white hover:bg-[#0869A8]">
               <HousePlus size={14} />
               Add Property
             </Button>
@@ -434,517 +879,537 @@ function PropertyToolbar({
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-[0_12px_34px_rgba(15,23,42,0.06)] backdrop-blur">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <label className="relative min-w-[220px] flex-1 xl:max-w-xl">
-              <span className="sr-only">Search properties, locations, units, and tenants</span>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Search property / location / unit number / tenant"
-                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#006948] focus:bg-white"
-              />
-            </label>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Badge variant="neutral">{shownCount} shown</Badge>
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays size={13} />
-                Live backend data
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {propertyFilters.map((filter) => (
-              <button
-                key={filter.value}
-                type="button"
-                onClick={() => onPropertyFilterChange(filter.value)}
-                className={clsx(
-                  'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-                  propertyFilter === filter.value
-                    ? 'border-[#006948] bg-[#006948] text-white'
-                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                )}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {unitTypeFilters.map((filter) => (
-              <button
-                key={filter.value}
-                type="button"
-                onClick={() => onUnitTypeFilterChange(filter.value)}
-                className={clsx(
-                  'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-                  unitTypeFilter === filter.value
-                    ? 'border-slate-800 bg-slate-800 text-white'
-                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                )}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
+      <section className="sticky top-0 z-20 rounded-3xl border border-[#D6E0EA] bg-white/95 p-3 shadow-sm backdrop-blur">
+        <div className="grid gap-3 xl:grid-cols-[minmax(240px,1.4fr)_220px_220px_auto] xl:items-center">
+          <label className="relative">
+            <span className="sr-only">Search property, landlord, location, unit, tenant</span>
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Search property, landlord, location, unit, tenant..."
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-[#F3F8FF] pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0B7CC1] focus:bg-white"
+            />
+          </label>
+          <Select
+            value={propertyFilter}
+            onChange={(event) => onPropertyFilterChange(event.target.value as PropertyFilter)}
+            options={propertyFilters}
+            aria-label="Status filter"
+          />
+          <Select
+            value={propertyTypeFilter}
+            onChange={(event) => onPropertyTypeFilterChange(event.target.value as PropertyTypeFilter)}
+            options={propertyTypeFilters}
+            aria-label="Type filter"
+          />
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold text-[#0B7CC1] transition hover:bg-[#F3F8FF]"
+            >
+              <FilterX size={15} />
+              Clear filters
+            </button>
+          )}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {quickFilters
+            .filter((filter) => !filter.requiresArrears || canFilterByArrears)
+            .map((filter) => {
+              const active = quickFilter === filter.value;
+              return (
+                <button
+                  key={filter.value}
+                  type="button"
+                  onClick={() => onQuickFilterChange(filter.value)}
+                  className={clsx(
+                    'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+                    active ? 'bg-[#0B7CC1] text-white shadow-sm shadow-[#0B7CC1]/20' : 'border border-slate-200 bg-white text-slate-600 hover:border-[#D6E0EA] hover:text-[#050816]'
+                  )}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+          <span className="ml-auto inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+            <CalendarDays size={13} />
+            {shownCount} shown
+            {typeFilterHasNoBackendData && propertyTypeFilter !== 'all' && <span className="text-[#0B7CC1]">Type filter requires backend support</span>}
+          </span>
         </div>
       </section>
     </div>
   );
 }
-
-function StatChip({ label, value, icon: Icon }: { label: string; value: ReactNode; icon: LucideIcon }) {
-  return (
-    <div className="flex min-w-[150px] items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#006948] shadow-sm">
-        <Icon size={15} />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-        <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function PropertyCardStats({ model }: { model: PropertyModel }) {
-  const countByType = (type: UnitTypeFilter) => model.units.filter((unit) => normalizeUnitType(unit.unitType) === type).length;
-  const openMaintenance = model.maintenance.filter(isMaintenanceOpen).length;
-  const occupiedRows = model.units.filter((unit) => normalizeStatus(unit.status) === 'occupied' || isLeaseActive(unit.currentLease)).length;
-  const occupiedUnits = model.property.occupiedUnits ?? (model.units.length ? occupiedRows : 'Not available yet');
-
-  return (
-    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-      <StatChip label="Total Units" value={model.property.totalUnits ?? 'Not available yet'} icon={DoorOpen} />
-      <StatChip label="Bedsitters" value={model.units.length ? countByType('bedsitter') : 'Not available yet'} icon={Home} />
-      <StatChip label="Single Rooms" value={model.units.length ? countByType('single-room') : 'Not available yet'} icon={Home} />
-      <StatChip label="1 Bedroom" value={model.units.length ? countByType('one-bedroom') : 'Not available yet'} icon={Home} />
-      <StatChip label="2 Bedroom" value={model.units.length ? countByType('two-bedroom') : 'Not available yet'} icon={Home} />
-      <StatChip label="Shops/Offices" value={model.units.length ? countByType('shop') + countByType('office') : 'Not available yet'} icon={Building2} />
-      <StatChip label="Occupied Units" value={occupiedUnits} icon={Users} />
-      <StatChip label="Available Units" value={model.availableUnits ?? 'Not available yet'} icon={DoorOpen} />
-      <StatChip label="Active Leases" value={model.leases.filter(isLeaseActive).length} icon={FileText} />
-      <StatChip label="Open Maintenance" value={openMaintenance} icon={Wrench} />
-      <StatChip label="Monthly Expected Rent" value={<MoneyText value={model.monthlyExpectedRent} />} icon={CreditCard} />
-      <StatChip label="Outstanding Balance" value={<MoneyText value={model.outstandingBalance} />} icon={AlertTriangle} />
-    </div>
-  );
-}
-
-function PropertyUnitsTable({
-  units,
-  unitTypeFilter,
-  onUnitClick,
-  onTenantClick,
+function PropertyTabs({
+  tabs,
+  activeTab,
+  onChange,
 }: {
-  units: UnitRow[];
-  unitTypeFilter: UnitTypeFilter;
-  onUnitClick: (unit: UnitRow) => void;
-  onTenantClick: (tenant: TenantRecord) => void;
+  tabs: Array<{ label: string; value: PropertyCardTab }>;
+  activeTab: PropertyCardTab;
+  onChange: (value: PropertyCardTab) => void;
 }) {
-  const visibleUnits = unitTypeFilter === 'all' ? units : units.filter((unit) => normalizeUnitType(unit.unitType) === unitTypeFilter);
-
-  if (units.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
-        <p className="text-sm font-semibold text-slate-700">No unit rows available yet.</p>
-        <p className="mt-1 text-xs text-slate-500">
-          Unit rows require real unit data from the backend or lease records with unit identifiers.
-        </p>
-        <div className="mt-3">
-          <UnsupportedLabel>Requires backend support</UnsupportedLabel>
-        </div>
-      </div>
-    );
-  }
-
-  if (visibleUnits.length === 0) {
-    return <EmptyState title="No units match this filter" description="Try another unit type filter." />;
-  }
-
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="w-full min-w-[1080px] text-left text-sm">
-        <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-          <tr>
-            <th className="px-4 py-3">Unit No</th>
-            <th className="px-4 py-3">Unit Type</th>
-            <th className="px-4 py-3">Unit Status</th>
-            <th className="px-4 py-3">Current Tenant</th>
-            <th className="px-4 py-3">Lease Status</th>
-            <th className="px-4 py-3">Monthly Rent</th>
-            <th className="px-4 py-3">Balance</th>
-            <th className="px-4 py-3">Open Maintenance</th>
-            <th className="px-4 py-3">Action</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {visibleUnits.map((unit) => {
-            const openMaintenance = unit.maintenance.filter(isMaintenanceOpen).length;
-            const balance = getBalance(unit.payments, unit.currentLease);
-            return (
-              <tr key={unit.id} onClick={() => onUnitClick(unit)} className="cursor-pointer text-slate-600 transition-colors hover:bg-emerald-50/40">
-                <td className="px-4 py-3 font-semibold text-slate-950">{unit.unitNumber}</td>
-                <td className="px-4 py-3">{unitTypeLabel(unit.unitType)}</td>
-                <td className="px-4 py-3"><StatusBadge status={unit.status ?? (unit.currentTenant ? 'occupied' : undefined)} /></td>
-                <td className="px-4 py-3">
-                  {unit.currentTenant ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onTenantClick(unit.currentTenant as TenantRecord);
-                      }}
-                      className="font-semibold text-[#006948] hover:underline"
-                    >
-                      {unit.currentTenant.name}
-                    </button>
-                  ) : (
-                    <span className="text-slate-400">No current tenant</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">{unit.currentLease?.status ? <StatusBadge status={unit.currentLease.status} /> : '—'}</td>
-                <td className="px-4 py-3 font-semibold text-slate-900"><MoneyText value={unit.monthlyRent} /></td>
-                <td className="px-4 py-3"><MoneyText value={balance} /></td>
-                <td className="px-4 py-3">{openMaintenance > 0 ? `${openMaintenance} open` : '0'}</td>
-                <td className="px-4 py-3">
-                  <Button type="button" variant="outline" size="sm">
-                    View
-                    <ChevronRight size={13} />
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="flex flex-wrap gap-2 rounded-2xl bg-slate-50 p-1">
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          type="button"
+          onClick={() => onChange(tab.value)}
+          className={clsx(
+            'rounded-xl px-3 py-2 text-xs font-semibold transition-colors',
+            activeTab === tab.value ? 'bg-white text-[#0B7CC1] shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-700'
+          )}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-function PropertyCard({
+function UnitRows({
   model,
-  unitTypeFilter,
+  activeTab,
   onUnitClick,
   onTenantClick,
 }: {
   model: PropertyModel;
-  unitTypeFilter: UnitTypeFilter;
+  activeTab: PropertyCardTab;
   onUnitClick: (property: PropertyModel, unit: UnitRow) => void;
-  onTenantClick: (tenant: TenantRecord, context?: TenantContext) => void;
+  onTenantClick: (property: PropertyModel, unit: UnitRow, tenant: TenantRecord) => void;
 }) {
-  const { property } = model;
-  const status = property.status ?? (model.availableUnits !== undefined && model.availableUnits > 0 ? 'active' : undefined);
+  const visibleUnits = model.units.filter((unit) => matchesCardTab(unit, activeTab));
+  const supportsRows = hasUnitRowsSupport(model);
+
+  if (!supportsRows) {
+    return (
+      <UnsupportedState
+        title="Units require backend support"
+        description="Unit rows require backend support or lease records with unit identifiers."
+      />
+    );
+  }
+
+  if (model.units.length === 0) {
+    return <EmptyState title="No units have been added for this property yet." />;
+  }
+
+  if (visibleUnits.length === 0) {
+    return <EmptyState title="No units match this tab" description="Try another unit tab or clear the property filters." />;
+  }
 
   return (
-    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_14px_38px_rgba(15,23,42,0.075)]">
-      <div className="border-b border-slate-100 px-4 py-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-sm font-bold text-white">
+    <div className="space-y-2">
+      <div className="hidden px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 lg:grid lg:grid-cols-[auto_minmax(120px,1fr)_minmax(150px,1fr)_minmax(120px,1fr)_minmax(120px,1fr)_minmax(110px,1fr)_auto]">
+        <span />
+        <span>Unit</span>
+        <span>Tenant</span>
+        <span>Lease</span>
+        <span>Rent</span>
+        <span>Status</span>
+        <span>Actions</span>
+      </div>
+      {visibleUnits.map((unit) => (
+        <div key={unit.id} className="rounded-2xl border border-slate-100 bg-white p-3 transition hover:border-[#D6E0EA] hover:bg-[#F3F8FF]/40">
+          <div className="grid gap-3 lg:grid-cols-[auto_minmax(120px,1fr)_minmax(150px,1fr)_minmax(120px,1fr)_minmax(120px,1fr)_minmax(110px,1fr)_auto]">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F3F8FF] text-[#0B7CC1]">
+                <Home size={17} />
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 lg:hidden">Unit</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 lg:hidden">Unit</p>
+              <p className="truncate font-semibold text-[#050816]">{unit.unitNumber}</p>
+              <p className="truncate text-xs text-slate-500">{unitTypeLabel(unit.unitType)}</p>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 lg:hidden">Tenant</p>
+              {unit.currentTenant ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onTenantClick(model, unit, unit.currentTenant as TenantRecord);
+                  }}
+                  className="block truncate text-left text-sm font-semibold text-[#0B7CC1] hover:underline"
+                >
+                  {unit.currentTenant.name}
+                </button>
+              ) : (
+                <p className="text-sm text-slate-400">—</p>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 lg:hidden">Lease</p>
+              {unit.currentLease ? <StatusBadge status={unit.currentLease.status} /> : <p className="text-sm text-slate-400">—</p>}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 lg:hidden">Rent</p>
+              <p className="text-sm font-semibold text-slate-800"><MoneyText value={unit.monthlyRent} /></p>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 lg:hidden">Status</p>
+              <StatusBadge status={unit.status} variant={statusBadgeVariant(unit.status)} />
+            </div>
+            <div className="flex items-center justify-start lg:justify-end">
+              <Button type="button" variant="outline" size="sm" onClick={() => onUnitClick(model, unit)} className="rounded-xl" aria-label={`View details for unit ${unit.unitNumber}`}>
+                <Eye size={14} />
+                View Details
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function PropertyCard({
+  model,
+  activeTab,
+  onTabChange,
+  onDetails,
+  onUnitClick,
+  onTenantClick,
+}: {
+  model: PropertyModel;
+  activeTab: PropertyCardTab;
+  onTabChange: (value: PropertyCardTab) => void;
+  onDetails: (property: PropertyModel) => void;
+  onUnitClick: (property: PropertyModel, unit: UnitRow) => void;
+  onTenantClick: (property: PropertyModel, unit: UnitRow, tenant: TenantRecord) => void;
+}) {
+  const { property } = model;
+  const tabs = visibleCardTabs(model);
+
+  return (
+    <article className="overflow-hidden rounded-3xl border border-[#D6E0EA] bg-white shadow-sm shadow-slate-200/70">
+      <div className="border-b border-slate-100 p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#050816_0%,#0B7CC1_100%)] text-sm font-bold text-white shadow-sm shadow-[#0B7CC1]/25">
               {initials(property.name)}
             </span>
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold text-slate-950">{property.name}</h2>
-              <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-                <MapPin size={14} />
-                <span className="truncate">{property.address || 'Not available yet'}</span>
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <StatusBadge status={status} />
-                <Badge variant="neutral">{property.propertyType ?? property.type ?? 'Not available yet'}</Badge>
-                {model.landlordName && <Badge variant="neutral">{model.landlordName}</Badge>}
-                <span className="font-mono text-[11px] text-slate-400">{property.id}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-lg font-bold text-[#050816]">{property.name}</h2>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">{property.id}</span>
+              </div>
+              <div className="mt-2 grid gap-2 text-sm text-[#475569] md:grid-cols-2">
+                <p className="flex min-w-0 items-center gap-2">
+                  <MapPin size={15} className="shrink-0 text-slate-400" />
+                  <span className="truncate">{property.address || '—'}</span>
+                </p>
+                <p className="flex min-w-0 items-center gap-2">
+                  <User size={15} className="shrink-0 text-slate-400" />
+                  <span className="truncate">{model.landlordName || '—'}</span>
+                </p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <StatusBadge status={derivePropertyStatus(model)} />
+                <Badge variant="neutral">{propertyTypeLabel(property.type ?? property.propertyType)}</Badge>
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            disabled
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-300"
-            title="Property actions require backend support"
-            aria-label="Property actions require backend support"
-          >
-            <MoreVertical size={16} />
-          </button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => onDetails(model)} className="rounded-xl lg:self-start" aria-label={`View details for ${property.name}`}>
+            <MoreVertical size={14} />
+            Details
+          </Button>
         </div>
       </div>
-      <div className="space-y-4 bg-slate-50 px-4 py-4">
+
+      <div className="space-y-4 bg-[#F8FAFC] p-5">
         <PropertyCardStats model={model} />
-        <PropertyUnitsTable
-          units={model.units}
-          unitTypeFilter={unitTypeFilter}
-          onUnitClick={(unit) => onUnitClick(model, unit)}
-          onTenantClick={(tenant) => onTenantClick(tenant, { property: model })}
-        />
+        <PropertyTabs tabs={tabs} activeTab={activeTab} onChange={onTabChange} />
+        <UnitRows model={model} activeTab={activeTab} onUnitClick={onUnitClick} onTenantClick={onTenantClick} />
       </div>
     </article>
   );
 }
 
-function UnitTenantsDrawer({
+function ResponsiveTable({
+  headers,
+  rows,
+  emptyTitle,
+  emptyDescription,
+}: {
+  headers: string[];
+  rows: Array<{ key: string; cells: ReactNode[] }>;
+  emptyTitle?: string;
+  emptyDescription?: string;
+}) {
+  if (rows.length === 0) {
+    return <EmptyState title={emptyTitle ?? 'No records found'} description={emptyDescription} />;
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="hidden px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 lg:grid" style={{ gridTemplateColumns: `repeat(${headers.length}, minmax(0, 1fr))` }}>
+        {headers.map((header) => <span key={header}>{header}</span>)}
+      </div>
+      {rows.map((row) => (
+        <div key={row.key} className="rounded-2xl border border-slate-100 bg-white p-3">
+          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${headers.length}, minmax(0, 1fr))` }}>
+            {row.cells.map((cell, index) => (
+              <div key={index} className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 lg:hidden">{headers[index]}</p>
+                <div className="mt-0.5 text-sm text-slate-700">{cell}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function InfoItem({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-[#050816]">{value}</dd>
+    </div>
+  );
+}
+
+function DrawerSectionTitle({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="mb-4">
+      <h3 className="text-base font-bold text-[#050816]">{title}</h3>
+      {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+    </div>
+  );
+}
+
+function PaymentSummary({ model, paymentsAvailable }: { model: PropertyModel; paymentsAvailable: boolean }) {
+  if (!paymentsAvailable) {
+    return <UnsupportedState title="Payment summary requires backend support" description="Payment summary requires backend support." />;
+  }
+
+  const total = model.payments.reduce((sum, payment) => sum + (moneyValue(payment.amount) ?? 0), 0);
+  const confirmed = model.payments.filter((payment) => normalizeStatus(payment.status) === 'confirmed').reduce((sum, payment) => sum + (moneyValue(payment.amount) ?? 0), 0);
+  const pending = model.payments.filter((payment) => normalizeStatus(payment.status) === 'pending').reduce((sum, payment) => sum + (moneyValue(payment.amount) ?? 0), 0);
+  const failed = model.payments.filter((payment) => normalizeStatus(payment.status) === 'failed').reduce((sum, payment) => sum + (moneyValue(payment.amount) ?? 0), 0);
+
+  if (model.payments.length === 0) {
+    return <EmptyState title="No payments found for this property yet." description="Payment records have not been returned by the backend." />;
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatChip label="Total Payments" value={<MoneyText value={total} />} icon={CreditCard} tone="bg-[#F3F8FF] text-[#0B7CC1]" />
+      <StatChip label="Confirmed" value={<MoneyText value={confirmed} />} icon={CheckCircle2} tone="bg-emerald-50 text-emerald-600" />
+      <StatChip label="Pending" value={<MoneyText value={pending} />} icon={CalendarDays} tone="bg-amber-50 text-amber-600" />
+      <StatChip label="Failed" value={<MoneyText value={failed} />} icon={AlertTriangle} tone="bg-rose-50 text-rose-600" />
+    </div>
+  );
+}
+
+function PropertyDetailsDrawer({
   selection,
   activeTab,
   onTabChange,
   onClose,
-  onTenantClick,
+  paymentsAvailable,
+  maintenanceAvailable,
 }: {
-  selection: { property: PropertyModel; unit: UnitRow } | null;
-  activeTab: UnitDrawerTab;
-  onTabChange: (tab: UnitDrawerTab) => void;
+  selection: { property: PropertyModel; unit?: UnitRow } | null;
+  activeTab: DetailsTab;
+  onTabChange: (value: DetailsTab) => void;
   onClose: () => void;
-  onTenantClick: (tenant: TenantRecord, context: TenantContext) => void;
+  paymentsAvailable: boolean;
+  maintenanceAvailable: boolean;
 }) {
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   if (!selection) return null;
-  const { property, unit } = selection;
-  const tenantHistory = unit.leases
-    .map((lease) => ({
-      lease,
-      tenant: property.tenants.find((tenant) => tenant.id === lease.tenantId),
-      payments: unit.payments.filter((payment) => payment.tenantId === lease.tenantId || payment.leaseId === lease.id),
-      maintenance: unit.maintenance.filter((request) => request.tenantId === lease.tenantId),
-    }))
-    .filter((item) => item.tenant);
-  const currentTenant = unit.currentTenant;
-  const currentLease = unit.currentLease;
+  const model = selection.property;
+  const selectedUnit = selection.unit;
 
   return (
     <div className="fixed inset-0 z-50">
-      <button type="button" aria-label="Close unit tenant drawer" className="absolute inset-0 bg-slate-950/35" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-5xl flex-col bg-white shadow-2xl">
-        <div className="border-b border-slate-200 px-5 py-4">
+      <button type="button" aria-label="Close property details" className="absolute inset-0 bg-slate-950/35" onClick={onClose} />
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-5xl flex-col bg-[#F8FAFC] shadow-2xl">
+        <div className="border-b border-[#D6E0EA] bg-white px-5 py-4">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Unit {unit.unitNumber} — {unitTypeLabel(unit.unitType)}</h2>
-              <p className="mt-1 text-sm text-slate-500">{property.property.name} · {statusText(unit.status ?? (currentTenant ? 'occupied' : undefined))}</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#050816_0%,#0B7CC1_100%)] text-sm font-bold text-white">
+                {initials(model.property.name)}
+              </span>
+              <div className="min-w-0">
+                <h2 className="truncate text-lg font-bold text-[#050816]">{model.property.name}</h2>
+                <p className="mt-1 truncate text-sm text-slate-500">{model.property.address || '—'} {selectedUnit ? `· Unit ${selectedUnit.unitNumber}` : ''}</p>
+              </div>
             </div>
-            <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <button type="button" onClick={onClose} className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close property details">
               <X size={18} />
             </button>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              ['current', 'Current Tenant'],
-              ['tenants', 'Tenant History'],
-              ['leases', 'Lease History'],
-              ['payments', 'Payments'],
-              ['maintenance', 'Maintenance'],
-            ].map(([value, label]) => (
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {detailsTabs.map((tab) => (
               <button
-                key={value}
+                key={tab.value}
                 type="button"
-                onClick={() => onTabChange(value as UnitDrawerTab)}
-                className={clsx('rounded-full px-3 py-1.5 text-xs font-semibold transition-colors', activeTab === value ? 'bg-[#006948] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}
+                onClick={() => onTabChange(tab.value)}
+                className={clsx(
+                  'shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+                  activeTab === tab.value ? 'bg-[#0B7CC1] text-white' : 'bg-white text-slate-600 hover:bg-[#F3F8FF] hover:text-[#0B7CC1]'
+                )}
               >
-                {label}
+                {tab.label}
               </button>
             ))}
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-100 p-5">
-          {activeTab === 'current' && (
-            currentTenant ? (
-              <DetailCard title="Current Tenant">
-                <button type="button" onClick={() => onTenantClick(currentTenant, { property, unit, lease: currentLease })} className="flex items-center gap-3 text-left">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-xs font-bold text-white">{initials(currentTenant.name)}</span>
-                  <span>
-                    <span className="block font-semibold text-slate-950">{currentTenant.name}</span>
-                    <span className="block text-sm text-slate-500">{currentTenant.email}</span>
-                  </span>
-                </button>
-                <dl className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <Info label="Phone" value={currentTenant.phone ?? 'Not available yet'} />
-                  <Info label="Lease Status" value={<StatusBadge status={currentLease?.status} />} />
-                  <Info label="Lease Start" value={<DateText value={currentLease?.startDate} />} />
-                  <Info label="Lease End" value={<DateText value={currentLease?.endDate} />} />
-                  <Info label="Monthly Rent" value={<MoneyText value={currentLease?.monthlyRent ?? unit.monthlyRent} />} />
-                  <Info label="Current Balance" value={<MoneyText value={getBalance(unit.payments, currentLease)} />} />
-                  <Info label="Open Maintenance" value={unit.maintenance.filter(isMaintenanceOpen).length} />
-                </dl>
-              </DetailCard>
-            ) : (
-              <EmptyState title="No current tenant found for this unit yet." />
-            )
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          {activeTab === 'overview' && (
+            <div className="space-y-4">
+              <DrawerSectionTitle title="Overview" description="Property summary from the admin properties, units, leases, tenants, and maintenance APIs." />
+              <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <InfoItem label="Property name" value={model.property.name} />
+                <InfoItem label="Landlord" value={model.landlordName ?? '—'} />
+                <InfoItem label="Location" value={model.property.address || '—'} />
+                <InfoItem label="Type" value={propertyTypeLabel(model.property.type ?? model.property.propertyType)} />
+                <InfoItem label="Status" value={<StatusBadge status={derivePropertyStatus(model)} />} />
+                <InfoItem label="Total units" value={countTotalUnits(model) ?? '—'} />
+                <InfoItem label="Occupied units" value={countOccupiedUnits(model)} />
+                <InfoItem label="Vacant units" value={countVacantUnits(model) ?? '—'} />
+                <InfoItem label="Active leases" value={model.leases.filter(isLeaseActive).length} />
+                <InfoItem label="Open maintenance" value={countOpenMaintenance(model)} />
+                <InfoItem label="Created date" value={<DateText value={model.property.createdAt} />} />
+              </dl>
+              {!hasUnitRowsSupport(model) && (
+                <UnsupportedState title="Unit data requires backend support" description="Unit data requires backend support or lease records with unit identifiers." />
+              )}
+            </div>
           )}
-          {activeTab === 'tenants' && (tenantHistory.length > 0 ? <TenantHistoryTable rows={tenantHistory} property={property} unit={unit} onTenantClick={onTenantClick} /> : <EmptyState title="No tenants found for this unit yet." />)}
-          {activeTab === 'leases' && (unit.leases.length > 0 ? (
-            <SimpleTable headers={['Lease', 'Tenant', 'Lease Period', 'Lease Status', 'Monthly Rent']} rows={unit.leases.map((lease) => [lease.id, property.tenants.find((tenant) => tenant.id === lease.tenantId)?.name ?? lease.tenantId, `${formatDate(lease.startDate)} to ${formatDate(lease.endDate)}`, <StatusBadge status={lease.status} />, <MoneyText value={lease.monthlyRent} />])} />
-          ) : <EmptyState title="No lease history found for this unit yet." />)}
-          {activeTab === 'payments' && (unit.payments.length > 0 ? (
-            <SimpleTable headers={['Payment', 'Tenant', 'Amount', 'Status', 'Paid Date']} rows={unit.payments.map((payment) => [payment.id, payment.tenantName ?? property.tenants.find((tenant) => tenant.id === payment.tenantId)?.name ?? 'Not available yet', <MoneyText value={payment.amount} />, <StatusBadge status={payment.status} />, <DateText value={payment.paidDate ?? payment.createdAt} />])} />
-          ) : <EmptyState title="No payments found for this unit yet." />)}
-          {activeTab === 'maintenance' && (unit.maintenance.length > 0 ? (
-            <SimpleTable headers={['Issue', 'Tenant', 'Status', 'Priority', 'Reported']} rows={unit.maintenance.map((request) => [request.title ?? request.issueSummary ?? 'Maintenance request', request.tenantName ?? property.tenants.find((tenant) => tenant.id === request.tenantId)?.name ?? 'Not available yet', <StatusBadge status={request.status} />, statusText(request.priority), <DateText value={request.createdAt} />])} />
-          ) : <EmptyState title="No maintenance requests found for this unit yet." />)}
+
+          {activeTab === 'units' && (
+            <div className="space-y-4">
+              <DrawerSectionTitle title="Units" description={hasUnitRowsSupport(model) ? 'Real unit rows from the backend.' : 'Unit rows require backend support.'} />
+              {hasUnitRowsSupport(model) ? (
+                <ResponsiveTable
+                  headers={['Unit', 'Type', 'Tenant', 'Rent', 'Status', 'Actions']}
+                  emptyTitle="No units have been added for this property yet."
+                  rows={model.units.map((unit) => ({
+                    key: unit.id,
+                    cells: [
+                      <span key="unit" className="font-semibold text-[#050816]">{unit.unitNumber}</span>,
+                      <span key="type">{unitTypeLabel(unit.unitType)}</span>,
+                      <span key="tenant">{unit.currentTenant?.name ?? '—'}</span>,
+                      <span key="rent"><MoneyText value={unit.monthlyRent} /></span>,
+                      <StatusBadge key="status" status={unit.status} />,
+                      <Button key="action" type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => onTabChange('units')}>View</Button>,
+                    ],
+                  }))}
+                />
+              ) : <UnsupportedState title="Units require backend support" description="Unit rows require backend support or lease records with unit identifiers." />}
+            </div>
+          )}
+          {activeTab === 'tenants' && (
+            <div className="space-y-4">
+              <DrawerSectionTitle title="Tenants" description="Tenants linked through real lease, unit, payment, or maintenance records." />
+              <ResponsiveTable
+                headers={['Tenant', 'Contact', 'Unit', 'Lease status']}
+                emptyTitle="No tenants linked to this property yet."
+                rows={model.tenants.map((tenant) => {
+                  const lease = model.leases.find((item) => item.tenantId === tenant.id);
+                  const unit = lease ? model.units.find((item) => item.leases.some((leaseItem) => leaseItem.id === lease.id)) : undefined;
+                  return {
+                    key: tenant.id,
+                    cells: [
+                      <span key="tenant" className="font-semibold text-[#050816]">{tenant.name}</span>,
+                      <span key="contact">{tenantContact(tenant)}</span>,
+                      <span key="unit">{unit?.unitNumber ?? '—'}</span>,
+                      lease ? <StatusBadge key="lease" status={lease.status} /> : <span key="lease-none">—</span>,
+                    ],
+                  };
+                })}
+              />
+            </div>
+          )}
+
+          {activeTab === 'leases' && (
+            <div className="space-y-4">
+              <DrawerSectionTitle title="Leases" description="Lease records returned by the backend." />
+              <ResponsiveTable
+                headers={['Tenant', 'Unit', 'Start date', 'End date', 'Status', 'Monthly rent']}
+                emptyTitle="No leases found for this property yet."
+                rows={model.leases.map((lease) => {
+                  const tenant = model.tenants.find((item) => item.id === lease.tenantId);
+                  const unit = model.units.find((item) => item.leases.some((leaseItem) => leaseItem.id === lease.id));
+                  return {
+                    key: lease.id,
+                    cells: [
+                      <span key="tenant" className="font-semibold text-[#050816]">{tenant?.name ?? lease.tenantName ?? lease.tenantId}</span>,
+                      <span key="unit">{unit?.unitNumber ?? lease.unitNumber ?? lease.propertyUnit ?? '—'}</span>,
+                      <DateText key="start" value={lease.startDate} />,
+                      <DateText key="end" value={lease.endDate} />,
+                      <StatusBadge key="status" status={lease.status} />,
+                      <MoneyText key="rent" value={lease.monthlyRent ?? lease.rentAmount} />,
+                    ],
+                  };
+                })}
+              />
+            </div>
+          )}
+
+          {activeTab === 'payments' && (
+            <div className="space-y-4">
+              <DrawerSectionTitle title="Payments" description="Payment summary is shown only when payment records are safely available." />
+              <PaymentSummary model={model} paymentsAvailable={paymentsAvailable} />
+            </div>
+          )}
+
+          {activeTab === 'maintenance' && (
+            <div className="space-y-4">
+              <DrawerSectionTitle title="Maintenance" description={maintenanceAvailable ? 'Maintenance requests returned by the backend.' : 'Maintenance requires backend support.'} />
+              {maintenanceAvailable ? (
+                <ResponsiveTable
+                  headers={['Issue', 'Priority', 'Status', 'Tenant', 'Unit', 'Created date']}
+                  emptyTitle="No maintenance requests found for this property yet."
+                  rows={model.maintenance.map((request) => {
+                    const tenant = model.tenants.find((item) => item.id === request.tenantId);
+                    const unit = model.units.find((item) => item.maintenance.some((requestItem) => requestItem.id === request.id));
+                    return {
+                      key: request.id,
+                      cells: [
+                        <span key="issue" className="font-semibold text-[#050816]">{request.title ?? request.issueSummary ?? request.description ?? 'Maintenance request'}</span>,
+                        <span key="priority">{statusText(request.priority)}</span>,
+                        <StatusBadge key="status" status={request.status} />,
+                        <span key="tenant">{tenant?.name ?? request.tenantName ?? '—'}</span>,
+                        <span key="unit">{unit?.unitNumber ?? request.unitNumber ?? request.propertyUnit ?? '—'}</span>,
+                        <DateText key="created" value={request.createdAt} />,
+                      ],
+                    };
+                  })}
+                />
+              ) : <UnsupportedState title="Maintenance requires backend support" description="Maintenance requests require backend support." />}
+            </div>
+          )}
+
+          {activeTab === 'reports' && (
+            <div className="space-y-4">
+              <DrawerSectionTitle title="Reports" />
+              <UnsupportedState title="Reports require backend support" description="No report data is exposed by the current backend APIs." />
+            </div>
+          )}
         </div>
       </aside>
     </div>
   );
 }
-
-function TenantHistoryTable({ rows, property, unit, onTenantClick }: { rows: Array<{ lease: LeaseRecord; tenant?: TenantRecord; payments: PaymentRecord[] }>; property: PropertyModel; unit: UnitRow; onTenantClick: (tenant: TenantRecord, context: TenantContext) => void }) {
-  return (
-    <SimpleTable
-      headers={['Tenant', 'Phone', 'Email', 'Lease Period', 'Lease Status', 'Total Paid', 'Balance', 'Action']}
-      rows={rows.map(({ tenant, lease, payments }) => {
-        const totalPaid = payments.length > 0 && payments.every((payment) => moneyValue(payment.amount) !== undefined) ? payments.reduce((total, payment) => total + payment.amount, 0) : undefined;
-        return [
-          tenant?.name ?? 'Not available yet',
-          tenant?.phone ?? 'Not available yet',
-          tenant?.email ?? 'Not available yet',
-          `${formatDate(lease.startDate)} to ${formatDate(lease.endDate)}`,
-          <StatusBadge status={lease.status} />,
-          <MoneyText value={totalPaid} />,
-          <MoneyText value={getBalance(payments, lease)} />,
-          tenant ? <Button type="button" size="sm" variant="outline" onClick={() => onTenantClick(tenant, { property, unit, lease })}>View</Button> : 'Not available yet',
-        ];
-      })}
-    />
-  );
-}
-
-function TenantDetailsDrawer({ selection, onClose }: { selection: { tenant: TenantRecord; context?: TenantContext } | null; onClose: () => void }) {
-  if (!selection) return null;
-  const { tenant, context } = selection;
-  const unit = context?.unit;
-  const property = context?.property;
-  const lease = context?.lease ?? unit?.currentLease;
-  const tenantPayments = unit?.payments.filter((payment) => payment.tenantId === tenant.id || payment.leaseId === lease?.id) ?? [];
-  const totalPaid = tenantPayments.length > 0 ? tenantPayments.reduce((total, payment) => total + payment.amount, 0) : undefined;
-  const tenantMaintenance = unit?.maintenance.filter((request) => request.tenantId === tenant.id) ?? [];
-
-  return (
-    <div className="fixed inset-0 z-[60]">
-      <button type="button" aria-label="Close tenant details" className="absolute inset-0 bg-slate-950/35" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a_0%,#006948_100%)] text-sm font-bold text-white">{initials(tenant.name)}</span>
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold text-slate-950">{tenant.name}</h2>
-              <p className="truncate text-sm text-slate-500">{tenant.email}</p>
-            </div>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X size={18} /></button>
-        </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-slate-100 px-5 py-4">
-          <DetailCard title="Profile">
-            <div className="space-y-3 text-sm">
-              <IconLine icon={User} text={tenant.name} />
-              <IconLine icon={Phone} text={tenant.phone ?? 'Not available yet'} />
-              <IconLine icon={Mail} text={tenant.email} />
-            </div>
-          </DetailCard>
-          <DetailCard title="Lease and Unit">
-            <dl className="grid gap-3 text-sm">
-              <Info label="Property" value={property?.property.name ?? 'Not available yet'} />
-              <Info label="Unit" value={unit?.unitNumber ?? 'Not available yet'} />
-              <Info label="Lease Status" value={<StatusBadge status={lease?.status} />} />
-              <Info label="Lease Start Date" value={<DateText value={lease?.startDate} />} />
-              <Info label="Lease End Date" value={<DateText value={lease?.endDate} />} />
-              <Info label="Monthly Rent" value={<MoneyText value={lease?.monthlyRent ?? unit?.monthlyRent} />} />
-            </dl>
-          </DetailCard>
-          <DetailCard title="Payments and Rent">
-            <dl className="grid gap-3 text-sm">
-              <Info label="Payment Summary" value={<MoneyText value={totalPaid} />} />
-              <Info label="Rent Charge Balance" value={<MoneyText value={getBalance(tenantPayments, lease)} />} />
-            </dl>
-          </DetailCard>
-          <DetailCard title="Maintenance Requests">
-            {tenantMaintenance.length > 0 ? (
-              <div className="space-y-2">
-                {tenantMaintenance.map((request) => (
-                  <div key={request.id} className="rounded-lg bg-white px-3 py-2 text-sm">
-                    <p className="font-semibold text-slate-900">{request.title ?? request.issueSummary ?? 'Maintenance request'}</p>
-                    <p className="mt-1 text-xs text-slate-500">{statusText(request.status)}</p>
-                  </div>
-                ))}
-              </div>
-            ) : <UnsupportedLabel>Not available yet</UnsupportedLabel>}
-          </DetailCard>
-        </div>
-      </aside>
-    </div>
-  );
-}
-
-function DetailCard({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-function Info({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
-      <dd className="mt-1 font-semibold text-slate-800">{value}</dd>
-    </div>
-  );
-}
-
-function IconLine({ icon: Icon, text }: { icon: LucideIcon; text: ReactNode }) {
-  return (
-    <p className="flex items-center gap-2 text-slate-700">
-      <Icon size={14} className="text-slate-400" />
-      <span>{text}</span>
-    </p>
-  );
-}
-
-function SimpleTable({ headers, rows }: { headers: string[]; rows: ReactNode[][] }) {
-  return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="w-full min-w-[760px] text-left text-sm">
-        <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-          <tr>{headers.map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 text-slate-700">{cell}</td>)}</tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function matchesSearch(model: PropertyModel, term: string) {
-  if (!term) return true;
-  return [
-    model.property.name,
-    model.property.address,
-    model.property.id,
-    model.property.propertyType,
-    model.property.type,
-    model.landlordName,
-    ...model.units.map((unit) => unit.unitNumber),
-    ...model.units.map((unit) => unit.currentTenant?.name),
-  ].filter(Boolean).join(' ').toLowerCase().includes(term);
-}
-
-function matchesPropertyFilter(model: PropertyModel, filter: PropertyFilter) {
-  if (filter === 'all') return true;
-  if (filter === 'active') return normalizeStatus(model.property.status) === 'active' || model.leases.some(isLeaseActive);
-  if (filter === 'occupied') return (model.property.occupiedUnits ?? 0) > 0 || model.units.some((unit) => unit.currentTenant);
-  if (filter === 'available') return (model.availableUnits ?? 0) > 0 || model.units.some((unit) => normalizeStatus(unit.status) === 'available');
-  return model.maintenance.some(isMaintenanceOpen);
-}
-
-function matchesUnitTypeFilter(model: PropertyModel, filter: UnitTypeFilter) {
-  if (filter === 'all') return true;
-  return model.units.some((unit) => normalizeUnitType(unit.unitType) === filter);
-}
-
 function AddPropertyModal({
   isOpen,
   landlords,
@@ -958,7 +1423,7 @@ function AddPropertyModal({
   isSaving: boolean;
   error?: string;
   onClose: () => void;
-  onSubmit: (payload: typeof emptyForm) => void;
+  onSubmit: (payload: PropertyForm) => void;
 }) {
   const [form, setForm] = useState(emptyForm);
 
@@ -985,10 +1450,13 @@ function AddPropertyModal({
           label="Landlord"
           value={form.landlordId}
           onChange={(event) => setForm((current) => ({ ...current, landlordId: event.target.value }))}
-          options={[{ value: '', label: 'No landlord selected' }, ...landlords.map((landlord) => ({ value: landlord.id, label: landlord.name }))]}
+          options={[
+            { value: '', label: landlords.length > 0 ? 'No landlord selected' : 'No landlords returned by backend' },
+            ...landlords.map((landlord) => ({ value: landlord.id, label: landlord.name })),
+          ]}
         />
         <Input label="Photo URL" value={form.photoUrl} onChange={(event) => setForm((current) => ({ ...current, photoUrl: event.target.value }))} />
-        {error && <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
+        {error && <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={close}>Cancel</Button>
           <Button type="submit" isLoading={isSaving}><HousePlus size={14} />Save property</Button>
@@ -997,19 +1465,20 @@ function AddPropertyModal({
     </Modal>
   );
 }
-
 export default function AdminPropertiesPage() {
   const [search, setSearch] = useState('');
   const [propertyFilter, setPropertyFilter] = useState<PropertyFilter>('all');
-  const [unitTypeFilter, setUnitTypeFilter] = useState<UnitTypeFilter>('all');
-  const [unitSelection, setUnitSelection] = useState<{ property: PropertyModel; unit: UnitRow } | null>(null);
-  const [tenantSelection, setTenantSelection] = useState<{ tenant: TenantRecord; context?: TenantContext } | null>(null);
-  const [unitDrawerTab, setUnitDrawerTab] = useState<UnitDrawerTab>('current');
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState<PropertyTypeFilter>('all');
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
+  const [cardTabs, setCardTabs] = useState<Record<string, PropertyCardTab>>({});
+  const [detailsSelection, setDetailsSelection] = useState<{ property: PropertyModel; unit?: UnitRow } | null>(null);
+  const [detailsTab, setDetailsTab] = useState<DetailsTab>('overview');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | undefined>();
 
-  const propertiesQuery = useAdminProperties(200);
-  const landlordsQuery = useAdminLandlords(200);
+  const propertiesQuery = useAdminProperties(500);
+  const unitsQuery = useAdminUnits(500);
+  const landlordsQuery = useAdminLandlords(500);
   const tenantsQuery = useAdminTenants(500);
   const leasesQuery = useAdminLeases(500);
   const paymentsQuery = useAdminPayments(500);
@@ -1020,22 +1489,45 @@ export default function AdminPropertiesPage() {
     () =>
       buildPropertyModels({
         properties: (propertiesQuery.data?.items ?? []) as ExtendedProperty[],
+        units: (unitsQuery.data?.items ?? []) as ApiUnit[],
         tenants: (tenantsQuery.data?.items ?? []) as TenantRecord[],
         leases: (leasesQuery.data?.items ?? []) as LeaseRecord[],
         payments: (paymentsQuery.data?.items ?? []) as PaymentRecord[],
         maintenance: (maintenanceQuery.data?.items ?? []) as MaintenanceRecord[],
         landlords: landlordsQuery.data?.items ?? [],
+        unitsApiSupported: unitsQuery.isSuccess,
       }),
-    [landlordsQuery.data?.items, leasesQuery.data?.items, maintenanceQuery.data?.items, paymentsQuery.data?.items, propertiesQuery.data?.items, tenantsQuery.data?.items]
+    [
+      landlordsQuery.data?.items,
+      leasesQuery.data?.items,
+      maintenanceQuery.data?.items,
+      paymentsQuery.data?.items,
+      propertiesQuery.data?.items,
+      tenantsQuery.data?.items,
+      unitsQuery.data?.items,
+      unitsQuery.isSuccess,
+    ]
   );
 
   const filteredModels = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return models.filter((model) => matchesSearch(model, term) && matchesPropertyFilter(model, propertyFilter) && matchesUnitTypeFilter(model, unitTypeFilter));
-  }, [models, propertyFilter, search, unitTypeFilter]);
+    return models.filter((model) => (
+      matchesSearch(model, term)
+      && matchesPropertyFilter(model, propertyFilter)
+      && matchesPropertyTypeFilter(model, propertyTypeFilter)
+      && matchesQuickFilter(model, quickFilter)
+    ));
+  }, [models, propertyFilter, propertyTypeFilter, quickFilter, search]);
+
+  const canFilterByArrears = models.some(hasArrearsData);
+  const typeFilterHasNoBackendData = models.length > 0 && !models.some((model) => normalizePropertyType(model.property.type ?? model.property.propertyType) !== 'unknown');
+  const relatedErrors = [unitsQuery.error, tenantsQuery.error, leasesQuery.error, paymentsQuery.error, maintenanceQuery.error].filter(Boolean);
+  const paymentsAvailable = paymentsQuery.isSuccess && !paymentsQuery.isError;
+  const maintenanceAvailable = maintenanceQuery.isSuccess && !maintenanceQuery.isError;
 
   function refreshAll() {
     void propertiesQuery.refetch();
+    void unitsQuery.refetch();
     void landlordsQuery.refetch();
     void tenantsQuery.refetch();
     void leasesQuery.refetch();
@@ -1043,7 +1535,19 @@ export default function AdminPropertiesPage() {
     void maintenanceQuery.refetch();
   }
 
-  async function handleCreate(payload: typeof emptyForm) {
+  function clearFilters() {
+    setSearch('');
+    setPropertyFilter('all');
+    setPropertyTypeFilter('all');
+    setQuickFilter('all');
+  }
+
+  function openDetails(property: PropertyModel, unit?: UnitRow) {
+    setDetailsSelection({ property, unit });
+    setDetailsTab(unit ? 'units' : 'overview');
+  }
+
+  async function handleCreate(payload: PropertyForm) {
     setCreateError(undefined);
     const totalUnits = Number(payload.totalUnits);
     const monthlyRent = Number(payload.monthlyRent);
@@ -1069,52 +1573,90 @@ export default function AdminPropertiesPage() {
   }
 
   if (propertiesQuery.isPending) {
-    return <LoadingState message="Loading properties..." />;
+    return (
+      <div className="min-h-full space-y-5 bg-[#F8FAFC] p-5 text-slate-900">
+        <PropertySkeletonList />
+      </div>
+    );
   }
 
   if (propertiesQuery.isError) {
     const error = handleApiError(propertiesQuery.error);
-    return <ErrorState message={`${error.status || 'API'}: ${error.message}`} onRetry={refreshAll} />;
+    const message = error.status === 401
+      ? 'Your session has expired. Please sign in again.'
+      : error.status === 403
+        ? 'You do not have permission to view properties.'
+        : error.message;
+    return (
+      <div className="min-h-full bg-[#F8FAFC] p-5">
+        <ErrorState message={message} onRetry={refreshAll} />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-full bg-slate-100 text-slate-900">
+    <div className="min-h-full space-y-5 bg-[#F8FAFC] p-5 text-slate-900">
       <PropertyToolbar
         search={search}
         propertyFilter={propertyFilter}
-        unitTypeFilter={unitTypeFilter}
+        propertyTypeFilter={propertyTypeFilter}
+        quickFilter={quickFilter}
         shownCount={filteredModels.length}
+        canFilterByArrears={canFilterByArrears}
+        typeFilterHasNoBackendData={typeFilterHasNoBackendData}
         onSearchChange={setSearch}
         onPropertyFilterChange={setPropertyFilter}
-        onUnitTypeFilterChange={setUnitTypeFilter}
+        onPropertyTypeFilterChange={setPropertyTypeFilter}
+        onQuickFilterChange={setQuickFilter}
         onRefresh={refreshAll}
         onAdd={() => setIsCreateOpen(true)}
+        onExport={() => exportPropertiesCsv(filteredModels)}
+        onClear={clearFilters}
       />
-      {(tenantsQuery.isError || leasesQuery.isError || paymentsQuery.isError || maintenanceQuery.isError) && (
-        <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+      {relatedErrors.length > 0 && (
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           Some related property details require backend support or are temporarily unavailable. Property cards remain available from the admin properties API.
         </div>
       )}
+
       {filteredModels.length === 0 ? (
-        <EmptyState title={models.length === 0 ? 'No properties found' : 'No properties match these filters'} description={models.length === 0 ? 'Create a property through the real API to begin.' : 'Try a different search term, property filter, or unit type filter.'} />
+        <EmptyState
+          title={models.length === 0 ? 'No properties found' : 'No properties match your filters'}
+          description={
+            models.length === 0
+              ? 'Create a property through the real API to begin.'
+              : propertyTypeFilter !== 'all' && typeFilterHasNoBackendData
+                ? 'Property type filtering requires backend support because property types were not returned.'
+                : 'Try a different search term, status filter, type filter, or quick filter.'
+          }
+        />
       ) : (
-        <div className="mt-5 space-y-4">
+        <div className="space-y-4">
           {filteredModels.map((model) => (
             <PropertyCard
               key={model.property.id}
               model={model}
-              unitTypeFilter={unitTypeFilter}
-              onUnitClick={(property, unit) => {
-                setUnitSelection({ property, unit });
-                setUnitDrawerTab('current');
+              activeTab={cardTabs[model.property.id] ?? 'all'}
+              onTabChange={(value) => setCardTabs((current) => ({ ...current, [model.property.id]: value }))}
+              onDetails={(property) => openDetails(property)}
+              onUnitClick={(property, unit) => openDetails(property, unit)}
+              onTenantClick={(property, unit) => {
+                openDetails(property, unit);
+                setDetailsTab('tenants');
               }}
-              onTenantClick={(tenant, context) => setTenantSelection({ tenant, context })}
             />
           ))}
         </div>
       )}
-      <UnitTenantsDrawer selection={unitSelection} activeTab={unitDrawerTab} onTabChange={setUnitDrawerTab} onClose={() => setUnitSelection(null)} onTenantClick={(tenant, context) => setTenantSelection({ tenant, context })} />
-      <TenantDetailsDrawer selection={tenantSelection} onClose={() => setTenantSelection(null)} />
+
+      <PropertyDetailsDrawer
+        selection={detailsSelection}
+        activeTab={detailsTab}
+        onTabChange={setDetailsTab}
+        onClose={() => setDetailsSelection(null)}
+        paymentsAvailable={paymentsAvailable}
+        maintenanceAvailable={maintenanceAvailable}
+      />
       <AddPropertyModal
         isOpen={isCreateOpen}
         landlords={landlordsQuery.data?.items ?? []}

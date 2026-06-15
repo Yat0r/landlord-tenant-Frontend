@@ -14,6 +14,7 @@ import type {
   MaintenanceStatus,
   MaintenancePriority,
   LeaseStatus,
+  UnitEntity,
 } from '@/types/domain/entities';
 
 export interface CreatePropertyPayload {
@@ -70,6 +71,11 @@ export function fetchTenants(params: {
 export function fetchProperties(params: { page?: number; pageSize?: number } = {}) {
   const { page = 1, pageSize = 100 } = params;
   return getPaged<PropertyEntity>(`${ENDPOINTS.ADMIN.PROPERTIES}${qs({ page, pageSize })}`);
+}
+
+export function fetchUnits(params: { page?: number; pageSize?: number } = {}) {
+  const { page = 1, pageSize = 100 } = params;
+  return getPaged<UnitEntity>(`${ENDPOINTS.ADMIN.UNITS}${qs({ page, pageSize })}`);
 }
 
 export function createProperty(payload: CreatePropertyPayload) {
