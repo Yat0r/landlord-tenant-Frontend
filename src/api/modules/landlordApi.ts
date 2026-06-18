@@ -1,4 +1,5 @@
 import { httpClient } from '@/api/clients/httpClient';
+import { unwrapApiResponse, type ApiResponse, type PagedResponse } from '@/api/helpers/apiHelpers';
 import { normalizePagedResult, type RawPagedResult } from '@/api/helpers/normalizePagedResult';
 import { ENDPOINTS } from '@/api/modules/endpoints';
 import type {
@@ -9,16 +10,15 @@ import type {
   TenantEntity,
 } from '@/types/domain/entities';
 
-type CollectionResponse<T> = T[] | RawPagedResult<T>;
+type CollectionResponse<T> = T[] | RawPagedResult<T> | PagedResponse<T>;
 
 function normalizeCollection<T>(raw: CollectionResponse<T>): T[] {
-  if (Array.isArray(raw)) return raw;
   return normalizePagedResult(raw).items;
 }
 
 async function getCollection<T>(url: string): Promise<T[]> {
-  const response = await httpClient.get<CollectionResponse<T>>(url);
-  return normalizeCollection(response.data);
+  const response = await httpClient.get<ApiResponse<CollectionResponse<T>>>(url);
+  return normalizeCollection(unwrapApiResponse(response.data));
 }
 
 export function fetchLandlordProperties() {

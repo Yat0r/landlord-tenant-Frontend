@@ -10,6 +10,10 @@ export const queryClient = new QueryClient({
       refetchOnReconnect: false,
       retry: (failureCount, error) => {
         if (error instanceof AxiosError && error.response) {
+          if (error.response.status === 401 || error.response.status === 403) {
+            return false;
+          }
+
           if (isNonRetryableStatus(error.response.status)) {
             return false;
           }

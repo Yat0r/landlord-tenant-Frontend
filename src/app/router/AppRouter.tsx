@@ -1,10 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useCallback, useEffect } from 'react';
+import { useAuth as useOidcAuth } from 'react-oidc-context';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { setupApiInterceptors } from '@/api/setupApiInterceptors';
 import { ROUTES } from '@/constants/routes/routes';
 import { ROLES } from '@/constants/roles/roles';
 
 // Auth guards
-import { ProtectedRoute } from '@/auth/components/ProtectedRoute';
-import { RoleGuard } from '@/auth/components/RoleGuard';
+import { RequireAuth } from '@/auth/components/RequireAuth';
+import { RequireRole } from '@/auth/components/RequireRole';
 
 // Layouts
 import { AuthLayout } from '@/layouts/auth/AuthLayout';
@@ -25,6 +28,7 @@ import OnboardingPage from '@/pages/public/OnboardingPage';
 // Error pages
 import UnauthorizedPage from '@/pages/errors/UnauthorizedPage';
 import AccountNotLinkedPage from '@/pages/errors/AccountNotLinkedPage';
+import SessionExpiredPage from '@/auth/components/SessionExpiredPage';
 
 // Portal pages
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
@@ -34,15 +38,36 @@ import AdminPropertiesPage from '@/pages/admin/AdminPropertiesPage';
 import AdminTenantsPage from '@/pages/admin/AdminTenantsPage';
 import LandlordsPage from '@/features/admin/landlords/LandlordsPage';
 import AddLandlordPage from '@/features/admin/landlords/AddLandlordPage';
+import EditLandlordPage from '@/features/admin/landlords/EditLandlordPage';
 import PropertyManagerDashboardPage from '@/pages/propertymanager/PropertyManagerDashboardPage';
 import LandlordDashboardPage from '@/pages/landlord/LandlordDashboardPage';
 import LandlordPropertiesPage from '@/features/landlord/properties/LandlordPropertiesPage';
 import TenantDashboardPage from '@/pages/tenant/TenantDashboardPage';
 import { PlannedState } from '@/components/feedback/PlannedState';
 
+function AuthApiSetup() {
+  const { user, removeUser } = useOidcAuth();
+  const navigate = useNavigate();
+
+  const handleUnauthorized = useCallback(async () => {
+    await removeUser();
+    navigate(ROUTES.SESSION_EXPIRED, { replace: true });
+  }, [navigate, removeUser]);
+
+  useEffect(() => {
+    return setupApiInterceptors({
+      getAccessToken: () => user?.access_token ?? null,
+      onUnauthorized: handleUnauthorized,
+    });
+  }, [handleUnauthorized, user]);
+
+  return null;
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter>
+      <AuthApiSetup />
       <Routes>
         {/* ── Public routes ───────────────────────────────────────────── */}
         <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
@@ -56,20 +81,22 @@ export function AppRouter() {
         <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallbackPage />} />
         <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
         <Route path={ROUTES.ACCOUNT_NOT_LINKED} element={<AccountNotLinkedPage />} />
+        <Route path={ROUTES.SESSION_EXPIRED} element={<SessionExpiredPage />} />
 
         {/* ── Protected (any authenticated user) ──────────────────────── */}
-        <Route element={<ProtectedRoute />}>
+        <Route element={<RequireAuth />}>
           <Route path={ROUTES.AUTH_ME} element={<AuthMePage />} />
           <Route path={ROUTES.ACCOUNT_PROFILE} element={<AccountProfilePage />} />
         </Route>
 
         {/* ── Admin portal ─────────────────────────────────────────────── */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<RoleGuard roles={[ROLES.ADMIN]} />}>
+        <Route element={<RequireAuth />}>
+          <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
             <Route element={<AdminLayout />}>
               <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
               <Route path={ROUTES.ADMIN_LANDLORDS} element={<LandlordsPage />} />
               <Route path={ROUTES.ADMIN_LANDLORDS_NEW} element={<AddLandlordPage />} />
+              <Route path={ROUTES.ADMIN_LANDLORDS_EDIT} element={<EditLandlordPage />} />
               <Route path={ROUTES.ADMIN_TENANTS} element={<AdminTenantsPage />} />
               <Route path={ROUTES.ADMIN_PROPERTIES} element={<AdminPropertiesPage />} />
               <Route path={ROUTES.ADMIN_LEASES} element={<AdminLeasesPage />} />
@@ -85,8 +112,8 @@ export function AppRouter() {
         </Route>
 
         {/* ── PropertyManager portal ───────────────────────────────────── */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<RoleGuard roles={[ROLES.PROPERTY_MANAGER]} />}>
+        <Route element={<RequireAuth />}>
+          <Route element={<RequireRole roles={[ROLES.PROPERTY_MANAGER]} />}>
             <Route element={<PropertyManagerLayout />}>
               <Route path={ROUTES.PROPERTY_MANAGER_DASHBOARD} element={<PropertyManagerDashboardPage />} />
               <Route path={ROUTES.PROPERTY_MANAGER_PROPERTIES} element={<PlannedState feature="Properties" />} />
@@ -99,8 +126,8 @@ export function AppRouter() {
         </Route>
 
         {/* ── Landlord portal ──────────────────────────────────────────── */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<RoleGuard roles={[ROLES.LANDLORD]} />}>
+        <Route element={<RequireAuth />}>
+          <Route element={<RequireRole roles={[ROLES.LANDLORD]} />}>
             <Route element={<LandlordLayout />}>
               <Route path={ROUTES.LANDLORD_DASHBOARD} element={<LandlordDashboardPage />} />
               <Route path={ROUTES.LANDLORD_PROFILE} element={<AccountProfilePage />} />
@@ -115,8 +142,8 @@ export function AppRouter() {
         </Route>
 
         {/* ── Tenant portal ────────────────────────────────────────────── */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<RoleGuard roles={[ROLES.TENANT]} />}>
+        <Route element={<RequireAuth />}>
+          <Route element={<RequireRole roles={[ROLES.TENANT]} />}>
             <Route element={<TenantLayout />}>
               <Route path={ROUTES.TENANT_DASHBOARD} element={<TenantDashboardPage />} />
               <Route path={ROUTES.TENANT_PROFILE} element={<AccountProfilePage />} />

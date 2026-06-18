@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { httpClient } from '@/api/clients/httpClient';
-import { isNonRetryableStatus } from '@/api/helpers/apiHelpers';
+import {
+  getApiErrorStatus,
+  isNonRetryableStatus,
+  unwrapApiResponse,
+  type ApiResponse,
+} from '@/api/helpers/apiHelpers';
 import {
   fetchLeases,
   fetchMaintenanceRequests,
@@ -23,7 +27,8 @@ const queryOptions = {
   refetchOnWindowFocus: false,
   refetchOnReconnect: false,
   retry: (failureCount: number, error: unknown) => {
-    if (error instanceof AxiosError && error.response && isNonRetryableStatus(error.response.status)) {
+    const status = getApiErrorStatus(error);
+    if (status !== null && isNonRetryableStatus(status)) {
       return false;
     }
 
@@ -32,10 +37,9 @@ const queryOptions = {
 } as const;
 
 export interface CreateTenantPayload {
-  name: string;
-  email: string;
-  phone: string;
-  propertyId?: string;
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
   nationalId?: string;
   notes?: string;
 }
@@ -90,7 +94,9 @@ export function useCreateTenant() {
 
   return useMutation({
     mutationFn: (payload: CreateTenantPayload) =>
-      httpClient.post<TenantRecord>(ENDPOINTS.ADMIN.TENANTS, payload).then((response) => response.data),
+      httpClient
+        .post<ApiResponse<TenantRecord>>(ENDPOINTS.ADMIN.TENANTS, payload)
+        .then((response) => unwrapApiResponse(response.data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'leases'] });

@@ -11,12 +11,14 @@ export const ROUTES = {
   // Errors
   UNAUTHORIZED: '/unauthorized',
   ACCOUNT_NOT_LINKED: '/account-not-linked',
+  SESSION_EXPIRED: '/session-expired',
 
   // Admin portal
   ADMIN: '/admin',
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_LANDLORDS: '/admin/landlords',
   ADMIN_LANDLORDS_NEW: '/admin/landlords/new',
+  ADMIN_LANDLORDS_EDIT: '/admin/landlords/:id/edit',
   ADMIN_TENANTS: '/admin/tenants',
   ADMIN_PROPERTIES: '/admin/properties',
   ADMIN_LEASES: '/admin/leases',

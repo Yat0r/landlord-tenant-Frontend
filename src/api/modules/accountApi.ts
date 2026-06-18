@@ -1,7 +1,7 @@
-import axios from 'axios';
 import { httpClient } from '@/api/clients/httpClient';
+import { unwrapApiResponse, type ApiResponse } from '@/api/helpers/apiHelpers';
 import { ENDPOINTS } from '@/api/modules/endpoints';
-import { ROLES, type AppRole } from '@/constants/roles/roles';
+import type { AppRole } from '@/constants/roles/roles';
 
 export interface AccountProfilePayload {
   firstName: string;
@@ -10,23 +10,34 @@ export interface AccountProfilePayload {
   phoneNumber: string;
 }
 
-export interface BackendAccountProfile {
-  id?: string;
-  firstName?: string;
-  lastName?: string;
+export interface CurrentUserProfileResponse {
+  keycloakUserId: string;
+  username?: string | null;
+  email?: string | null;
+  roles: string[];
   displayName?: string;
-  name?: string;
   phoneNumber?: string;
-  phone?: string;
-  email?: string;
-  keycloakLinked?: boolean;
-  linked?: boolean;
-  status?: string;
-  accountStatus?: string;
+  avatarUrl?: string | null;
+  preferredLanguage?: string | null;
+  timeZone?: string | null;
+  updatedAt?: string | null;
+  linkedEntityType?: string | null;
+  linkedEntityId?: string | null;
+  accountLinked: boolean;
 }
 
+export interface UpdateCurrentUserProfileRequest {
+  displayName: string;
+  phoneNumber: string;
+  avatarUrl?: string | null;
+  preferredLanguage?: string | null;
+  timeZone?: string | null;
+}
+
+export type BackendAccountProfile = CurrentUserProfileResponse;
+
 export type AccountProfileSupport =
-  | { supported: true; endpoint: string; role: AppRole }
+  | { supported: true; endpoint: string; role?: AppRole }
   | { supported: false; reason: string };
 
 export class UnsupportedProfileEndpointError extends Error {
@@ -37,26 +48,15 @@ export class UnsupportedProfileEndpointError extends Error {
 }
 
 export function getAccountProfileSupport(roles: AppRole[]): AccountProfileSupport {
-  if (roles.includes(ROLES.LANDLORD)) {
-    return { supported: true, endpoint: ENDPOINTS.LANDLORD.PROFILE, role: ROLES.LANDLORD };
-  }
-
-  if (roles.includes(ROLES.TENANT)) {
-    return { supported: true, endpoint: ENDPOINTS.TENANT.PROFILE, role: ROLES.TENANT };
-  }
-
-  return {
-    supported: false,
-    reason: 'Profile update requires backend support.',
-  };
+  return { supported: true, endpoint: ENDPOINTS.ME.PROFILE, role: roles[0] };
 }
 
 export async function fetchAccountProfile(roles: AppRole[]): Promise<BackendAccountProfile | null> {
   const support = getAccountProfileSupport(roles);
   if (!support.supported) return null;
 
-  const response = await httpClient.get<BackendAccountProfile>(support.endpoint);
-  return response.data;
+  const response = await httpClient.get<ApiResponse<CurrentUserProfileResponse>>(support.endpoint);
+  return unwrapApiResponse(response.data);
 }
 
 export async function updateAccountProfile(
@@ -68,17 +68,14 @@ export async function updateAccountProfile(
     throw new UnsupportedProfileEndpointError(support.reason);
   }
 
-  try {
-    const response = await httpClient.patch<BackendAccountProfile>(support.endpoint, payload);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status;
-      if (status === 404 || status === 405 || status === 501) {
-        throw new UnsupportedProfileEndpointError();
-      }
-    }
+  const request: UpdateCurrentUserProfileRequest = {
+    displayName: payload.displayName,
+    phoneNumber: payload.phoneNumber,
+  };
 
-    throw error;
-  }
+  const response = await httpClient.put<ApiResponse<CurrentUserProfileResponse>>(
+    ENDPOINTS.ME.PROFILE,
+    request
+  );
+  return unwrapApiResponse(response.data);
 }

@@ -20,15 +20,35 @@ export interface PagedResult<T> {
   pageSize: number;
 }
 
-export interface CreateLandlordPayload {
-  name: string;
-  email: string;
-  phone: string;
-  nationalId: string;
+export interface CreateLandlordRequest {
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
+  address?: string;
+  keycloakUserId?: string;
 }
 
 export interface CreateLandlordResponse {
   id: string;
-  name: string;
+  fullName: string;
   email: string;
+}
+
+export interface UpdateLandlordRequest {
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
+  address?: string;
+  keycloakUserId?: string;
+}
+
+export interface LandlordDetails {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  email?: string | null;
+  address?: string | null;
+  keycloakUserId?: string | null;
+  createdAt: string;
+  propertyCount: number;
 }

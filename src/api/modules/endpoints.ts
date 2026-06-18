@@ -6,13 +6,24 @@
 export const ENDPOINTS = {
   ADMIN: {
     LANDLORDS: '/api/landlords',
+    LANDLORDS_QUERY: '/api/landlords/query',
     TENANTS: '/api/tenants',
+    TENANTS_QUERY: '/api/tenants/query',
     PROPERTIES: '/api/properties',
+    PROPERTIES_QUERY: '/api/properties/query',
     UNITS: '/api/units',
+    UNITS_QUERY: '/api/units/query',
     LEASES: '/api/leases',
+    LEASES_QUERY: '/api/leases/query',
     PAYMENTS: '/api/payments',
+    PAYMENTS_QUERY: '/api/payments/query',
     MAINTENANCE_REQUESTS: '/api/maintenance-requests',
+    MAINTENANCE_REQUESTS_QUERY: '/api/maintenance-requests/query',
     AUDIT_LOGS: '/api/audit-logs',
+  },
+
+  ME: {
+    PROFILE: '/api/me/profile',
   },
 
   SYSTEM: {

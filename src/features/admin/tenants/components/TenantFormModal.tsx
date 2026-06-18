@@ -1,11 +1,11 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { AlertTriangle, UserPlus } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import type { ApiError } from '@/api/helpers/apiHelpers';
 import type { CreateTenantPayload } from '../hooks/useAdminTenants';
-import type { PropertyRecord, TenantRowModel } from '../utils/tenantDerivedData';
+import type { TenantRowModel } from '../utils/tenantDerivedData';
 
 type Mode = 'add' | 'edit';
 
@@ -14,7 +14,6 @@ interface TenantFormValues {
   lastName: string;
   email: string;
   phone: string;
-  propertyId: string;
   nationalId: string;
   notes: string;
 }
@@ -26,7 +25,6 @@ const emptyForm: TenantFormValues = {
   lastName: '',
   email: '',
   phone: '',
-  propertyId: '',
   nationalId: '',
   notes: '',
 };
@@ -64,7 +62,6 @@ function buildInitialForm(mode: Mode, tenant?: TenantRowModel | null): TenantFor
     lastName: tenant.tenant.lastName ?? split.lastName,
     email: tenant.email,
     phone: tenant.phone ?? '',
-    propertyId: tenant.lease?.propertyId ?? tenant.tenant.propertyId ?? '',
     nationalId: tenant.tenant.nationalId ?? tenant.tenant.idNumber ?? tenant.tenant.passportNumber ?? '',
     notes: tenant.tenant.notes ?? '',
   };
@@ -74,37 +71,25 @@ export function TenantFormModal({
   isOpen,
   mode,
   tenant,
-  properties,
-  supportsEdit,
   supportsNationalId,
   supportsNotes,
   isSaving,
-  error,
+  apiError,
   onClose,
   onSubmit,
 }: {
   isOpen: boolean;
   mode: Mode;
   tenant?: TenantRowModel | null;
-  properties: PropertyRecord[];
-  supportsEdit: boolean;
   supportsNationalId: boolean;
   supportsNotes: boolean;
   isSaving: boolean;
-  error?: string;
+  apiError?: ApiError;
   onClose: () => void;
   onSubmit: (payload: CreateTenantPayload) => void;
 }) {
   const [form, setForm] = useState<TenantFormValues>(() => buildInitialForm(mode, tenant));
   const [errors, setErrors] = useState<FormErrors>({});
-
-  const propertyOptions = useMemo(
-    () => [
-      { value: '', label: 'No property selected' },
-      ...properties.map((property) => ({ value: property.id, label: property.name })),
-    ],
-    [properties]
-  );
 
   function setField(field: keyof TenantFormValues, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -118,10 +103,9 @@ export function TenantFormModal({
     if (Object.keys(nextErrors).length > 0) return;
 
     const payload: CreateTenantPayload = {
-      name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      propertyId: form.propertyId || undefined,
+      fullName: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+      phoneNumber: form.phone.trim(),
+      email: form.email.trim() || undefined,
       nationalId: supportsNationalId && form.nationalId.trim() ? form.nationalId.trim() : undefined,
       notes: supportsNotes && form.notes.trim() ? form.notes.trim() : undefined,
     };
@@ -133,19 +117,7 @@ export function TenantFormModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="md">
-      {mode === 'edit' && !supportsEdit ? (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm font-medium text-slate-600">
-            Tenant editing requires backend support.
-          </div>
-          <div className="flex justify-end">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <form className="animate-[fadeIn_160ms_ease-out] space-y-4" onSubmit={handleSubmit}>
+      <form className="animate-[fadeIn_160ms_ease-out] space-y-4" onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="First name*"
@@ -175,12 +147,6 @@ export function TenantFormModal({
             hint="Use 07XXXXXXXX or +2547XXXXXXXX."
             onChange={(event) => setField('phone', event.target.value)}
           />
-          <Select
-            label="Property"
-            value={form.propertyId}
-            options={propertyOptions}
-            onChange={(event) => setField('propertyId', event.target.value)}
-          />
           {supportsNationalId && (
             <Input
               label="National ID / Passport"
@@ -201,10 +167,22 @@ export function TenantFormModal({
               />
             </div>
           )}
-          {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              {error}
+          {apiError && (
+            <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2 font-medium text-rose-700">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {apiError.message}
+              </div>
+              {apiError.errors && apiError.errors.length > 0 && (
+                <ul className="mt-1.5 list-disc space-y-0.5 pl-6 text-rose-600">
+                  {apiError.errors.map((fieldError, index) => (
+                    <li key={index}>{fieldError}</li>
+                  ))}
+                </ul>
+              )}
+              {apiError.detail && (
+                <p className="mt-1.5 pl-6 text-rose-600">{apiError.detail}</p>
+              )}
             </div>
           )}
           <div className="flex justify-end gap-2 pt-2">
@@ -217,7 +195,6 @@ export function TenantFormModal({
             </Button>
           </div>
         </form>
-      )}
     </Modal>
   );
 }

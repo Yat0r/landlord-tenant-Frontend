@@ -77,13 +77,13 @@ function normalizeStatus(value: unknown): string {
 function buildInitialForm(profile: ClaimMap | undefined, backendProfile: BackendAccountProfile | null): ProfileFormState {
   const name = getString(profile?.name);
   const split = splitName(name);
-  const backendName = splitName(getString(backendProfile?.name));
+  const backendName = splitName(getString(backendProfile?.displayName));
 
   return {
-    firstName: getString(backendProfile?.firstName) || getString(profile?.given_name) || backendName.firstName || split.firstName,
-    lastName: getString(backendProfile?.lastName) || getString(profile?.family_name) || backendName.lastName || split.lastName,
-    displayName: getString(backendProfile?.displayName) || getString(backendProfile?.name) || name,
-    phoneNumber: getString(backendProfile?.phoneNumber) || getString(backendProfile?.phone) || getString(profile?.phone_number),
+    firstName: getString(profile?.given_name) || backendName.firstName || split.firstName,
+    lastName: getString(profile?.family_name) || backendName.lastName || split.lastName,
+    displayName: getString(backendProfile?.displayName) || name,
+    phoneNumber: getString(backendProfile?.phoneNumber) || getString(profile?.phone_number),
   };
 }
 
@@ -204,8 +204,8 @@ export default function AccountProfilePage() {
   const email = getString(profile?.email) || getString(backendProfile?.email);
   const fullName = form.displayName || getString(profile?.name) || username || 'Current user';
   const roleLabel = roles.length ? roles.join(', ') : 'No role detected';
-  const accountStatus = normalizeStatus(backendProfile?.accountStatus ?? backendProfile?.status);
-  const linkedValue = backendProfile?.keycloakLinked ?? backendProfile?.linked;
+  const accountStatus = normalizeStatus(backendProfile ? 'Authenticated' : undefined);
+  const linkedValue = backendProfile?.accountLinked;
   const linkedStatus = typeof linkedValue === 'boolean' ? (linkedValue ? 'Linked' : 'Unlinked') : 'Not available';
   const hasAccountConsole = Boolean(accountConsoleUrl?.trim());
 
@@ -426,7 +426,7 @@ export default function AccountProfilePage() {
               <div className="mt-4">
                 {support.supported ? (
                   <Alert variant="info">
-                    Saves use the configured backend profile endpoint for your detected role. If the backend rejects the method, the page reports it as unsupported.
+                    Saves use /api/me/profile for the current authenticated user.
                   </Alert>
                 ) : (
                   <Alert variant="warning">Profile update requires backend support.</Alert>

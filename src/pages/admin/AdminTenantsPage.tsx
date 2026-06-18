@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '@/components/ui/Button';
-import { handleApiError } from '@/api/helpers/apiHelpers';
+import { handleApiError, type ApiError } from '@/api/helpers/apiHelpers';
 import { useAdminTenantsData, useCreateTenant, type CreateTenantPayload } from '@/features/admin/tenants/hooks/useAdminTenants';
 import { TenantDetailsDrawer } from '@/features/admin/tenants/components/TenantDetailsDrawer';
 import { TenantFormModal } from '@/features/admin/tenants/components/TenantFormModal';
@@ -178,7 +178,7 @@ export default function AdminTenantsPage() {
   const [maintenanceFilter, setMaintenanceFilter] = useState<MaintenanceFilter>('all');
   const [selectedTenant, setSelectedTenant] = useState<TenantRowModel | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
-  const [formError, setFormError] = useState<string>();
+  const [formError, setFormError] = useState<ApiError | undefined>();
   const [toast, setToast] = useState<string>();
 
   const data = useAdminTenantsData(500);
@@ -244,7 +244,6 @@ export default function AdminTenantsPage() {
     propertyFilter !== 'all' ||
     maintenanceFilter !== 'all';
 
-  const supportsEdit = false;
   const supportsNationalId = tenantSupportsField(rows, ['nationalId', 'idNumber', 'passportNumber']);
   const supportsNotes = tenantSupportsField(rows, ['notes']);
 
@@ -276,11 +275,11 @@ export default function AdminTenantsPage() {
     try {
       await createTenant.mutateAsync(payload);
       setModal(null);
-      setToast(`Tenant ${payload.name} added successfully.`);
+      setToast(`Tenant ${payload.fullName} added successfully.`);
       window.setTimeout(() => setToast(undefined), 3500);
       refreshAll();
     } catch (error) {
-      setFormError(handleApiError(error).message);
+      setFormError(handleApiError(error));
     }
   }
 
@@ -511,12 +510,10 @@ export default function AdminTenantsPage() {
           isOpen
           mode={modal.mode}
           tenant={modal.tenant}
-          properties={data.properties}
-          supportsEdit={supportsEdit}
           supportsNationalId={supportsNationalId}
           supportsNotes={supportsNotes}
           isSaving={createTenant.isPending}
-          error={formError}
+          apiError={formError}
           onClose={() => {
             setModal(null);
             setFormError(undefined);

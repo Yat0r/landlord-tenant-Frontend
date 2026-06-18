@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { httpClient } from '@/api/clients/httpClient';
-import { isNonRetryableStatus } from '@/api/helpers/apiHelpers';
+import {
+  getApiErrorStatus,
+  isNonRetryableStatus,
+  unwrapApiResponse,
+  type ApiResponse,
+} from '@/api/helpers/apiHelpers';
 import {
   fetchAuditLogs,
   fetchLeases,
@@ -23,7 +27,8 @@ const queryOptions = {
   refetchOnWindowFocus: false,
   refetchOnReconnect: false,
   retry: (failureCount: number, error: unknown) => {
-    if (error instanceof AxiosError && error.response && isNonRetryableStatus(error.response.status)) {
+    const status = getApiErrorStatus(error);
+    if (status !== null && isNonRetryableStatus(status)) {
       return false;
     }
 
@@ -92,7 +97,9 @@ export function useRecordPayment() {
 
   return useMutation({
     mutationFn: (payload: RecordPaymentPayload) =>
-      httpClient.post<PaymentRecord>(ENDPOINTS.ADMIN.PAYMENTS, payload).then((response) => response.data),
+      httpClient
+        .post<ApiResponse<PaymentRecord>>(ENDPOINTS.ADMIN.PAYMENTS, payload)
+        .then((response) => unwrapApiResponse(response.data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'payments'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'leases'] });

@@ -1,11 +1,13 @@
+import type { AppRole } from '@/auth/utils/roles';
+
 export const roles = {
   admin: 'Admin',
   propertyManager: 'PropertyManager',
   landlord: 'Landlord',
   tenant: 'Tenant',
-} as const;
+} as const satisfies Record<string, AppRole>;
 
-export type AppRole = (typeof roles)[keyof typeof roles];
+export type { AppRole } from '@/auth/utils/roles';
 
 export const ROLES = {
   ADMIN: roles.admin,

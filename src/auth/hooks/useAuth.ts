@@ -1,8 +1,7 @@
 import { useAuth as useOidcAuth } from 'react-oidc-context';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { extractRolesFromUser, getRoleRedirectPath } from '@/auth/utils/authHelpers';
 import type { AppRole } from '@/constants/roles/roles';
-import { setAuthToken } from '@/api/clients/httpClient';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -23,16 +22,10 @@ export function useAuth(): AuthState {
 
   const roles = useMemo(() => extractRolesFromUser(auth.user ?? null), [auth.user]);
   const redirectPath = useMemo(() => getRoleRedirectPath(roles), [roles]);
-  const accessToken = auth.user?.access_token ?? null;
-
-  useEffect(() => {
-    setAuthToken(accessToken);
-  }, [accessToken]);
 
   async function signOut() {
     const idToken = auth.user?.id_token;
 
-    setAuthToken(null);
     await auth.removeUser();
     await auth.signoutRedirect({ id_token_hint: idToken });
   }

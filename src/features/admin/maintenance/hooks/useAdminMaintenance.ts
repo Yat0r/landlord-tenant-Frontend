@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { httpClient } from '@/api/clients/httpClient';
-import { isNonRetryableStatus } from '@/api/helpers/apiHelpers';
+import {
+  getApiErrorStatus,
+  isNonRetryableStatus,
+  unwrapApiResponse,
+  unwrapApiResponseAllowEmpty,
+  type ApiResponse,
+} from '@/api/helpers/apiHelpers';
 import {
   fetchAuditLogs,
   fetchLeases,
@@ -25,7 +30,8 @@ const queryOptions = {
   refetchOnWindowFocus: false,
   refetchOnReconnect: false,
   retry: (failureCount: number, error: unknown) => {
-    if (error instanceof AxiosError && error.response && isNonRetryableStatus(error.response.status)) {
+    const status = getApiErrorStatus(error);
+    if (status !== null && isNonRetryableStatus(status)) {
       return false;
     }
 
@@ -107,7 +113,9 @@ export function useCreateMaintenanceRequest() {
 
   return useMutation({
     mutationFn: (payload: MaintenanceRequestPayload) =>
-      httpClient.post<MaintenanceRecord>(ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS, payload).then((response) => response.data),
+      httpClient
+        .post<ApiResponse<MaintenanceRecord>>(ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS, payload)
+        .then((response) => unwrapApiResponse(response.data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'maintenance-requests'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'audit-logs'] });
@@ -120,7 +128,9 @@ export function useUpdateMaintenanceRequest() {
 
   return useMutation({
     mutationFn: ({ id, ...payload }: MaintenanceUpdatePayload) =>
-      httpClient.put<MaintenanceRecord>(`${ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS}/${id}`, payload).then((response) => response.data),
+      httpClient
+        .put<ApiResponse<MaintenanceRecord>>(`${ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS}/${id}`, payload)
+        .then((response) => unwrapApiResponse(response.data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'maintenance-requests'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'audit-logs'] });
@@ -133,7 +143,9 @@ export function useDeleteMaintenanceRequest() {
 
   return useMutation({
     mutationFn: (id: string) =>
-      httpClient.delete(`${ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS}/${id}`).then((response) => response.data),
+      httpClient
+        .delete<ApiResponse<object>>(`${ENDPOINTS.ADMIN.MAINTENANCE_REQUESTS}/${id}`)
+        .then((response) => unwrapApiResponseAllowEmpty(response.data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'maintenance-requests'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'audit-logs'] });

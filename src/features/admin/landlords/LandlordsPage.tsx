@@ -14,6 +14,7 @@ import {
   Users,
   UserX,
 } from 'lucide-react';
+import { ROUTES } from '@/constants/routes/routes';
 import { useLandlords } from './hooks/useLandlords';
 
 const PAGE_SIZE = 15;
@@ -43,6 +44,36 @@ function Badge({ variant, children }: { variant: BadgeVariant; children: ReactNo
       {children}
     </span>
   );
+}
+
+function getInitials(name?: string | null): string {
+  const source = name?.trim();
+  if (!source) return 'NA';
+
+  const initials = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
+    .slice(0, 2);
+
+  return initials || 'NA';
+}
+
+function getLandlordDisplayName(landlord: {
+  name?: string | null;
+  fullName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+}): string {
+  const fullName = landlord.fullName?.trim();
+  if (fullName) return fullName;
+
+  const name = landlord.name?.trim();
+  if (name) return name;
+
+  const combined = [landlord.firstName?.trim(), landlord.lastName?.trim()].filter(Boolean).join(' ').trim();
+  return combined || 'NA';
 }
 
 function MiniStatCard({
@@ -272,15 +303,10 @@ export default function LandlordsPage() {
                   <td className="py-3 px-5 whitespace-nowrap">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                        {landlord.name
-                          .split(' ')
-                          .map((namePart) => namePart[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase()}
+                        {getInitials(getLandlordDisplayName(landlord))}
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-800">{landlord.name}</div>
+                        <div className="font-semibold text-slate-800">{getLandlordDisplayName(landlord)}</div>
                         <div className="text-[10px] text-slate-400 font-mono">{landlord.id}</div>
                       </div>
                     </div>
@@ -326,16 +352,16 @@ export default function LandlordsPage() {
                   </td>
 
                   <td className="py-3 px-5 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/admin/landlords/${landlord.id}`)}
-                      className="text-[11px] text-brand-primary font-semibold hover:underline flex items-center gap-1"
-                    >
-                      View <ChevronRight size={11} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      <button
+                        type="button"
+                        onClick={() => navigate(ROUTES.ADMIN_LANDLORDS_EDIT.replace(':id', landlord.id))}
+                        className="text-[11px] text-brand-primary font-semibold hover:underline flex items-center gap-1"
+                      >
+                        Edit <ChevronRight size={11} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
